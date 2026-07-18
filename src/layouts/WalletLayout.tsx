@@ -15,7 +15,8 @@ import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
 
-const NAV = [
+type NavItem = { to: string; label: string; icon: typeof Wallet; exact?: boolean };
+const NAV: readonly NavItem[] = [
   { to: "/wallet", label: "Balance", icon: Wallet, exact: true },
   { to: "/wallet/send", label: "Send", icon: ArrowUpFromLine },
   { to: "/wallet/receive", label: "Receive", icon: ArrowDownToLine },
@@ -23,7 +24,7 @@ const NAV = [
   { to: "/wallet/network", label: "Network", icon: Network },
   { to: "/wallet/security", label: "Security", icon: Shield },
   { to: "/wallet/about", label: "About", icon: Info },
-] as const;
+];
 
 export function WalletLayout() {
   const { status, wallet, lock, activeNode } = useWallet();
