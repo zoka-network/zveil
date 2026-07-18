@@ -1,11 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, Check, Copy, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Copy, Eye, EyeOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { useWallet } from "@/wallet/WalletProvider";
@@ -15,35 +13,83 @@ export const Route = createFileRoute("/create")({
 });
 
 type Step = "warn" | "reveal" | "confirm" | "done";
+type WordCount = 12 | 24;
+
+const DISTRACTOR_POOL = [
+  "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
+  "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
+  "acoustic", "acquire", "across", "action", "actor", "actress", "actual", "adapt",
+  "advice", "aerobic", "affair", "afford", "afraid", "agree", "airport", "alarm",
+  "album", "alert", "alien", "almost", "alone", "already", "always", "amazing",
+];
+
+function shuffle<T>(arr: T[]): T[] {
+  const out = arr.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const bytes = new Uint8Array(1);
+    crypto.getRandomValues(bytes);
+    const j = bytes[0] % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function pickIndices(total: number, count: number): number[] {
+  const set = new Set<number>();
+  while (set.size < Math.min(count, total)) {
+    const bytes = new Uint8Array(1);
+    crypto.getRandomValues(bytes);
+    set.add(bytes[0] % total);
+  }
+  return Array.from(set).sort((a, b) => a - b);
+}
 
 function CreatePage() {
   const { engine, unlockWithWallet } = useWallet();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("warn");
+  const [wordCount, setWordCount] = useState<WordCount>(12);
   const [acknowledged, setAcknowledged] = useState(false);
   const [phrase, setPhrase] = useState<string>("");
   const [revealed, setRevealed] = useState(false);
 
   const words = useMemo(() => phrase.split(" ").filter(Boolean), [phrase]);
 
-  // Random indices to confirm
-  const confirmIndices = useMemo(() => {
-    if (words.length === 0) return [] as number[];
-    const set = new Set<number>();
-    while (set.size < Math.min(3, words.length)) {
-      const bytes = new Uint8Array(1);
-      crypto.getRandomValues(bytes);
-      set.add(bytes[0] % words.length);
-    }
-    return Array.from(set).sort((a, b) => a - b);
+  // Confirm: pick 4 positions and generate 6-word options each (correct + distractors).
+  const challenges = useMemo(() => {
+    if (words.length === 0) return [] as { index: number; options: string[] }[];
+    const positions = pickIndices(words.length, 4);
+    return positions.map((pos) => {
+      const correct = words[pos];
+      const distractorSource = [
+        ...words.filter((w) => w !== correct),
+        ...DISTRACTOR_POOL.filter((w) => w !== correct),
+      ];
+      const distractors: string[] = [];
+      const used = new Set<string>([correct]);
+      while (distractors.length < 5 && distractorSource.length > 0) {
+        const bytes = new Uint8Array(1);
+        crypto.getRandomValues(bytes);
+        const cand = distractorSource[bytes[0] % distractorSource.length];
+        if (!used.has(cand)) {
+          used.add(cand);
+          distractors.push(cand);
+        }
+      }
+      return { index: pos, options: shuffle([correct, ...distractors]) };
+    });
   }, [words]);
 
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  // Per-challenge state: selected word and whether it was correct.
+  const [picks, setPicks] = useState<Record<number, { word: string; correct: boolean }>>({});
+  const [wrongFlash, setWrongFlash] = useState<Record<number, string>>({});
 
   async function beginGenerate() {
-    const mnemonic = await engine.generateWallet();
+    const mnemonic = await engine.generateWallet(wordCount);
     setPhrase(mnemonic.phrase);
+    setPicks({});
+    setWrongFlash({});
     setStep("reveal");
   }
 
@@ -54,18 +100,44 @@ function CreatePage() {
     });
   }
 
-  const allConfirmed =
-    confirmIndices.length > 0 &&
-    confirmIndices.every((i) => (answers[i] ?? "").trim().toLowerCase() === words[i]);
+  function handlePick(challengeIdx: number, wordIndex: number, chosen: string) {
+    const correct = words[wordIndex] === chosen;
+    if (correct) {
+      setPicks((p) => ({ ...p, [challengeIdx]: { word: chosen, correct: true } }));
+      setWrongFlash((f) => {
+        const { [challengeIdx]: _, ...rest } = f;
+        return rest;
+      });
+    } else {
+      setWrongFlash((f) => ({ ...f, [challengeIdx]: chosen }));
+      // Clear the red flash after a moment so user can retry.
+      setTimeout(() => {
+        setWrongFlash((f) => {
+          if (f[challengeIdx] !== chosen) return f;
+          const { [challengeIdx]: _, ...rest } = f;
+          return rest;
+        });
+      }, 900);
+    }
+  }
+
+  const allCorrect =
+    challenges.length > 0 && challenges.every((_, i) => picks[i]?.correct);
+
+  // Auto-finalize once every challenge is correct.
+  useEffect(() => {
+    if (step !== "confirm" || !allCorrect) return;
+    void finalize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, allCorrect]);
 
   async function finalize() {
     const wallet = await engine.deriveWallet(phrase);
-    // Best-effort wipe of local state
     setPhrase("");
-    setAnswers({});
+    setPicks({});
     unlockWithWallet(wallet);
     setStep("done");
-    setTimeout(() => void navigate({ to: "/wallet" }), 400);
+    setTimeout(() => void navigate({ to: "/wallet" }), 500);
   }
 
   return (
@@ -97,6 +169,32 @@ function CreatePage() {
               it for you. If you lose it, your funds are lost forever.
             </p>
 
+            <div className="mt-6">
+              <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Seed length
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {([12, 24] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setWordCount(n)}
+                    className={
+                      "mono rounded-md border px-4 py-3 text-left text-sm uppercase tracking-wider transition-colors " +
+                      (wordCount === n
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border bg-background/40 text-muted-foreground hover:border-border-strong hover:text-foreground")
+                    }
+                  >
+                    <span className="block text-base font-semibold">{n} words</span>
+                    <span className="mt-1 block text-[10px] normal-case tracking-normal text-muted-foreground">
+                      {n === 12 ? "Standard security" : "Highest security"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-6 space-y-3 rounded-md border border-warning/30 bg-warning/5 p-4 text-sm text-warning">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -127,7 +225,7 @@ function CreatePage() {
               disabled={!acknowledged}
               onClick={beginGenerate}
             >
-              Generate seed
+              Generate {wordCount}-word seed
             </Button>
           </section>
         )}
@@ -135,7 +233,7 @@ function CreatePage() {
         {step === "reveal" && (
           <section className="zk-panel-elevated p-8">
             <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Step 2 · Backup
+              Step 2 · Backup · {words.length} words
             </p>
             <div className="mt-2 flex items-center justify-between">
               <h1 className="text-2xl font-semibold tracking-tight">Your seed phrase</h1>
@@ -192,38 +290,65 @@ function CreatePage() {
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">Confirm your seed</h1>
             <p className="mt-3 text-sm text-muted-foreground">
-              Type the words at the positions below to confirm you saved the phrase correctly.
+              Tap the correct word for each position. Correct picks turn green, wrong picks turn
+              red — you can try again until it's right.
             </p>
 
-            <div className="mt-6 space-y-4">
-              {confirmIndices.map((i) => (
-                <div key={i}>
-                  <Label className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Word #{i + 1}
-                  </Label>
-                  <Input
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    value={answers[i] ?? ""}
-                    onChange={(e) => setAnswers((a) => ({ ...a, [i]: e.target.value }))}
-                    className="mono mt-1"
-                  />
-                </div>
-              ))}
+            <div className="mt-6 space-y-6">
+              {challenges.map((ch, ci) => {
+                const pick = picks[ci];
+                const wrong = wrongFlash[ci];
+                return (
+                  <div key={ci}>
+                    <div className="mono flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <span>Word #{ch.index + 1}</span>
+                      {pick?.correct && (
+                        <span className="flex items-center gap-1 text-success">
+                          <Check className="h-3 w-3" /> Correct
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {ch.options.map((opt) => {
+                        const isCorrectPick = pick?.correct && pick.word === opt;
+                        const isWrongFlash = wrong === opt;
+                        const disabled = pick?.correct === true;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => handlePick(ci, ch.index, opt)}
+                            className={
+                              "mono flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition-colors " +
+                              (isCorrectPick
+                                ? "border-success bg-success/10 text-success"
+                                : isWrongFlash
+                                  ? "border-destructive bg-destructive/10 text-destructive"
+                                  : disabled
+                                    ? "border-border bg-background/20 text-muted-foreground opacity-60"
+                                    : "border-border bg-background/40 text-foreground hover:border-border-strong")
+                            }
+                          >
+                            <span>{opt}</span>
+                            {isCorrectPick && <Check className="h-3.5 w-3.5" />}
+                            {isWrongFlash && <X className="h-3.5 w-3.5" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="mt-8 flex justify-between">
+            <div className="mt-8 flex items-center justify-between">
               <Button variant="ghost" onClick={() => setStep("reveal")} className="mono uppercase tracking-wider">
                 Back
               </Button>
-              <Button
-                onClick={finalize}
-                disabled={!allConfirmed}
-                className="mono uppercase tracking-wider"
-              >
-                Confirm & open wallet
-              </Button>
+              <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {Object.values(picks).filter((p) => p.correct).length}/{challenges.length} correct
+              </p>
             </div>
           </section>
         )}
@@ -243,4 +368,3 @@ function CreatePage() {
     </div>
   );
 }
-
