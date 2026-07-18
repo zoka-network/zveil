@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { WalletProvider } from "@/wallet/WalletProvider";
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
 
 function NotFoundComponent() {
   return (
@@ -124,9 +125,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <Outlet />
-      </WalletProvider>
+      <GlobalErrorBoundary>
+        <WalletProvider>
+          <Outlet />
+        </WalletProvider>
+      </GlobalErrorBoundary>
     </QueryClientProvider>
   );
 }
