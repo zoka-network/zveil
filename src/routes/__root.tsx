@@ -125,9 +125,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <Outlet />
-      </WalletProvider>
+      <GlobalErrorBoundary>
+        <WalletProvider>
+          <Outlet />
+        </WalletProvider>
+      </GlobalErrorBoundary>
     </QueryClientProvider>
   );
 }
