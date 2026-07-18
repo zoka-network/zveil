@@ -244,7 +244,3 @@ function CreatePage() {
   );
 }
 
-// Best-effort: wipe phrase from memory on unmount handled via React state gc.
-export function _noop() {
-  useEffect(() => () => {}, []);
-}
