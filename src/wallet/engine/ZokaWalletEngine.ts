@@ -104,7 +104,7 @@ export interface ZokaWalletEngine {
   /** Identifier used by the UI to warn about non-production engines. */
   readonly kind: "mock" | "wasm";
 
-  generateWallet(): Promise<Mnemonic>;
+  generateWallet(wordCount?: 12 | 24): Promise<Mnemonic>;
   validateMnemonic(mnemonic: string): Promise<boolean>;
   restoreWallet(mnemonic: string): Promise<DerivedWallet>;
   deriveWallet(mnemonic: string): Promise<DerivedWallet>;
