@@ -76,7 +76,7 @@ export function WalletLayout() {
               return (
                 <Link
                   key={item.to}
-                  to={item.to}
+                  to={item.to as "/wallet"}
                   className={
                     "mono flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-[12px] uppercase tracking-wider transition-colors " +
                     (active
