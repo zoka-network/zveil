@@ -55,10 +55,10 @@ function fakeHex(len: number): string {
 export class MockZokaWalletEngine implements ZokaWalletEngine {
   readonly kind = "mock" as const;
 
-  async generateWallet(): Promise<Mnemonic> {
-    // Zoka's real wordlist and word count are unknown here. 12 is a placeholder.
-    const phrase = randomWords(12);
-    return { phrase, wordCount: 12 };
+  async generateWallet(wordCount: 12 | 24 = 12): Promise<Mnemonic> {
+    // Zoka's real wordlist and word count are unknown here. Mock supports 12 or 24.
+    const phrase = randomWords(wordCount);
+    return { phrase, wordCount };
   }
 
   async validateMnemonic(mnemonic: string): Promise<boolean> {
