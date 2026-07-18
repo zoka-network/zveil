@@ -11,8 +11,6 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { WalletProvider } from "@/wallet/WalletProvider";
-import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -79,35 +77,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Zoka Web Wallet — Private by design" },
-      {
-        name: "description",
-        content:
-          "Official non-custodial web wallet for Zoka Network. Zero-knowledge, full ownership. Your keys never leave this device.",
-      },
-      { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "Zoka Web Wallet" },
-      {
-        property: "og:description",
-        content: "Private by design. Your keys never leave this device.",
-      },
+      { title: "Lovable App" },
+      { name: "description", content: "A private, non-custodial web wallet for Zoka Network to manage ZKA assets securely." },
+      { name: "author", content: "Lovable" },
+      { property: "og:title", content: "Lovable App" },
+      { property: "og:description", content: "A private, non-custodial web wallet for Zoka Network to manage ZKA assets securely." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:description", content: "A private, non-custodial web wallet for Zoka Network to manage ZKA assets securely." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/795841df-921e-406a-b905-f4812cf3bf91/id-preview-e80baea3--46b7d77d-a295-4e0e-908b-65d16ec3a149.lovable.app-1784379558892.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/795841df-921e-406a-b905-f4812cf3bf91/id-preview-e80baea3--46b7d77d-a295-4e0e-908b-65d16ec3a149.lovable.app-1784379558892.png" },
     ],
     links: [
-      {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
-      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -140,12 +123,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <Toaster />
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </WalletProvider>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
     </QueryClientProvider>
   );
 }
-
