@@ -27,8 +27,13 @@ function normalize(w: string): string {
 }
 
 function RestorePage() {
-  const { engine, unlockWithWallet } = useWallet();
+  const { engine, unlockWithWallet, hasStoredWallet } = useWallet();
   const navigate = useNavigate();
+
+  // Never overwrite an existing device wallet from the restore flow.
+  useEffect(() => {
+    if (hasStoredWallet) void navigate({ to: "/wallet" });
+  }, [hasStoredWallet, navigate]);
 
   const [wordCount, setWordCount] = useState<WordCount>(12);
   const [words, setWords] = useState<string[]>(() => Array.from({ length: 12 }, () => ""));

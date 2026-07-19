@@ -11,12 +11,13 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const { status } = useWallet();
+  const { status, hasStoredWallet } = useWallet();
   const navigate = useNavigate();
 
+  // If this device already has a wallet, skip onboarding entirely.
   useEffect(() => {
-    if (status === "unlocked") void navigate({ to: "/wallet" });
-  }, [status, navigate]);
+    if (status === "unlocked" || hasStoredWallet) void navigate({ to: "/wallet" });
+  }, [status, hasStoredWallet, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col">
