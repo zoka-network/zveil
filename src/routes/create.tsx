@@ -45,14 +45,22 @@ function pickIndices(total: number, count: number): number[] {
 }
 
 function CreatePage() {
-  const { engine, unlockWithWallet } = useWallet();
+  const { engine, unlockWithWallet, hasStoredWallet } = useWallet();
   const navigate = useNavigate();
+
+  // A wallet already exists on this device — never offer to create a second
+  // one silently. Redirect to /wallet so the user unlocks (or explicitly
+  // forgets) the existing wallet first.
+  useEffect(() => {
+    if (hasStoredWallet) void navigate({ to: "/wallet" });
+  }, [hasStoredWallet, navigate]);
 
   const [step, setStep] = useState<Step>("warn");
   const [wordCount, setWordCount] = useState<WordCount>(12);
   const [acknowledged, setAcknowledged] = useState(false);
   const [phrase, setPhrase] = useState<string>("");
   const [revealed, setRevealed] = useState(false);
+
 
   const words = useMemo(() => phrase.split(" ").filter(Boolean), [phrase]);
 
