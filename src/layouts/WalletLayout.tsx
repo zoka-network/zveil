@@ -12,6 +12,7 @@ import {
 import { useEffect } from "react";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
+import { AutoLockDialog } from "@/components/zoka/AutoLockDialog";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
 
