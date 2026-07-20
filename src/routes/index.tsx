@@ -37,6 +37,29 @@ function LandingPage() {
 
       <main className="zk-grid relative flex-1">
         <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 md:grid-cols-2 md:py-24">
+          {storageError && (
+            <div className="md:col-span-2 flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium">Stored wallet data looks corrupted</p>
+                <p className="mono mt-1 text-[11px] uppercase tracking-widest text-destructive/80">
+                  {storageError}
+                </p>
+                <p className="mt-2 text-destructive/80">
+                  Your seed phrase is the only source of truth. Clear the broken data on this
+                  device and restore from your written-down seed.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="destructive" onClick={forget} className="mono uppercase tracking-wider">
+                    Clear device data
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="mono uppercase tracking-wider">
+                    <Link to="/restore">Restore from seed</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col justify-center">
             <p className="mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
               Official · Non-custodial
