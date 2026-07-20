@@ -1,20 +1,24 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { ArrowRight, KeyRound, Shield } from "lucide-react";
+import { AlertTriangle, ArrowRight, KeyRound, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { useWallet } from "@/wallet/WalletProvider";
+import { hasStoredWalletSync } from "@/wallet/storage/localWallet";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: () => {
+    if (hasStoredWalletSync()) throw redirect({ to: "/wallet" });
+  },
   component: LandingPage,
 });
 
 function LandingPage() {
-  const { status, hasStoredWallet } = useWallet();
+  const { status, hasStoredWallet, storageError, forget } = useWallet();
   const navigate = useNavigate();
 
-  // If this device already has a wallet, skip onboarding entirely.
+  // Runtime guard (covers state changes after mount).
   useEffect(() => {
     if (status === "unlocked" || hasStoredWallet) void navigate({ to: "/wallet" });
   }, [status, hasStoredWallet, navigate]);
