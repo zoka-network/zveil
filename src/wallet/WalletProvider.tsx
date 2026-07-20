@@ -1,9 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { MockZokaWalletEngine } from "@/wallet/engine/MockZokaWalletEngine";
-import type { DerivedWallet, OpaqueKey, ZokaWalletEngine } from "@/wallet/engine/ZokaWalletEngine";
+import type { DerivedWallet, ZokaWalletEngine } from "@/wallet/engine/ZokaWalletEngine";
 import { MockZokaRpcClient } from "@/wallet/rpc/HttpZokaRpcClient";
 import type { RpcNode, ZokaRpcClient } from "@/wallet/rpc/ZokaRpcClient";
 import { authorizedNodes, zokaConfig } from "@/wallet/config";
+import {
+  clearStoredWallet,
+  loadStoredNodeId,
+  loadStoredWallet,
+  persistNodeId,
+  persistWallet,
+} from "@/wallet/storage/localWallet";
 
 export type WalletStatus = "empty" | "unlocked" | "locked";
 
@@ -16,6 +23,8 @@ interface WalletState {
   nodes: readonly RpcNode[];
   balanceHidden: boolean;
   hasStoredWallet: boolean;
+  /** Non-null when localStorage has data that could not be parsed. */
+  storageError: string | null;
 
   unlockWithWallet: (w: DerivedWallet) => void;
   lock: () => void;
@@ -27,57 +36,15 @@ interface WalletState {
 
 const WalletContext = createContext<WalletState | null>(null);
 
-/**
- * Persistence marker for the CURRENT development stage.
- *
- * ⚠️  This is NOT the production storage format. The production build must
- * persist an encrypted container produced by EncryptedWalletStorage and
- * require the user's password to unlock. Here we only remember the public
- * portion of the derived wallet so the UI can route the user back to their
- * existing wallet instead of offering to create a new one.
- */
-const STORAGE_KEY = "zoka.wallet.public.v0";
-
-interface StoredPublicWallet {
-  readonly primaryAddress: { value: string; index?: number };
-  readonly publicScanKey: string;
-  readonly publicSpendKey: string;
-}
-
-function loadStoredWallet(): DerivedWallet | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredPublicWallet;
-    // Rebuild a placeholder opaque handle. The mock engine does not
-    // dereference it; the real WASM engine will require a proper unlock
-    // flow that produces a fresh handle from the encrypted container.
-    const secretHandle = { __opaque: "zoka-opaque-key" } as unknown as OpaqueKey;
-    return { ...parsed, secretHandle };
-  } catch {
-    return null;
-  }
-}
-
-function persistWallet(w: DerivedWallet): void {
-  if (typeof window === "undefined") return;
-  const payload: StoredPublicWallet = {
-    primaryAddress: { value: w.primaryAddress.value, index: w.primaryAddress.index },
-    publicScanKey: w.publicScanKey,
-    publicSpendKey: w.publicSpendKey,
-  };
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-}
-
-function clearStoredWallet(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(STORAGE_KEY);
-}
-
 export function WalletProvider({ children }: { children: ReactNode }) {
   const engineRef = useRef<ZokaWalletEngine>(new MockZokaWalletEngine());
-  const [activeNodeId, setActiveNodeId] = useState<string>(authorizedNodes[1].id);
+
+  // Restore the last selected RPC node (if any) — falls back to default.
+  const [activeNodeId, setActiveNodeId] = useState<string>(() => {
+    const stored = loadStoredNodeId();
+    if (stored && authorizedNodes.some((n) => n.id === stored)) return stored;
+    return authorizedNodes[1].id;
+  });
   const activeNode = useMemo(
     () => authorizedNodes.find((n) => n.id === activeNodeId) ?? authorizedNodes[0],
     [activeNodeId],
@@ -86,22 +53,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     rpcRef.current = new MockZokaRpcClient(activeNode);
+    persistNodeId(activeNode.id);
   }, [activeNode]);
 
   const [wallet, setWallet] = useState<DerivedWallet | null>(null);
   const [status, setStatus] = useState<WalletStatus>("empty");
   const [balanceHidden, setBalanceHidden] = useState(true);
   const [hasStoredWallet, setHasStoredWallet] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
 
   // On mount, restore any wallet previously created on this device.
-  // The wallet lands in "locked" state — the user must explicitly unlock it.
   useEffect(() => {
-    const stored = loadStoredWallet();
-    if (stored) {
-      setWallet(stored);
+    const result = loadStoredWallet();
+    if (result.kind === "ok") {
+      setWallet(result.wallet);
       setStatus("locked");
       setHasStoredWallet(true);
+    } else if (result.kind === "corrupt") {
+      setStorageError(result.reason);
     }
   }, []);
 
@@ -109,6 +79,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setWallet(w);
     setStatus("unlocked");
     setHasStoredWallet(true);
+    setStorageError(null);
     persistWallet(w);
     lastActivityRef.current = Date.now();
   }, []);
@@ -124,13 +95,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setWallet(null);
     setStatus("empty");
     setHasStoredWallet(false);
+    setStorageError(null);
   }, []);
 
   const bumpActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
   }, []);
 
-  // Auto-lock inactivity timer
   useEffect(() => {
     if (status !== "unlocked") return;
     const interval = setInterval(() => {
@@ -159,6 +130,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     nodes: authorizedNodes,
     balanceHidden,
     hasStoredWallet,
+    storageError,
     unlockWithWallet,
     lock,
     forget,

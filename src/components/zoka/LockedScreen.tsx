@@ -1,4 +1,5 @@
 import { LockKeyhole } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
 import { DevEngineBanner } from "./DevEngineBanner";
@@ -10,6 +11,11 @@ import { ZokaLogo } from "./ZokaLogo";
  */
 export function LockedScreen() {
   const { wallet, unlockWithWallet, forget } = useWallet();
+  const navigate = useNavigate();
+  const handleForget = () => {
+    forget();
+    void navigate({ to: "/" });
+  };
   return (
     <div className="flex min-h-screen flex-col">
       <DevEngineBanner />
@@ -33,7 +39,7 @@ export function LockedScreen() {
             <Button
               variant="ghost"
               className="mono w-full uppercase tracking-wider text-muted-foreground"
-              onClick={forget}
+              onClick={handleForget}
             >
               Forget wallet
             </Button>

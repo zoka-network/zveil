@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, X } from "lucide-react";
 import { toast } from "sonner";
@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { useWallet } from "@/wallet/WalletProvider";
+import { hasStoredWalletSync } from "@/wallet/storage/localWallet";
 
 export const Route = createFileRoute("/restore")({
+  beforeLoad: () => {
+    if (hasStoredWalletSync()) throw redirect({ to: "/wallet" });
+  },
   component: RestorePage,
 });
 
