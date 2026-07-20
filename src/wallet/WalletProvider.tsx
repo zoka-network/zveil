@@ -184,6 +184,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setActiveNode: setActiveNodeId,
     toggleBalanceHidden: () => setBalanceHidden((v) => !v),
     bumpActivity,
+    stayUnlocked,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
