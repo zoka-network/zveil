@@ -14,6 +14,8 @@ export const zokaConfig = {
 
   /** Auto-lock after N ms of inactivity. */
   autoLockMs: 5 * 60 * 1000,
+  /** Show a confirmation dialog this many ms before auto-lock fires. */
+  warnBeforeLockMs: 60 * 1000,
 };
 
 export const authorizedNodes: readonly RpcNode[] = MOCK_RPC_NODES;

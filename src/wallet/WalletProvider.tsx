@@ -26,12 +26,19 @@ interface WalletState {
   /** Non-null when localStorage has data that could not be parsed. */
   storageError: string | null;
 
+  /** True when the pre-lock confirmation dialog should be shown. */
+  lockWarningVisible: boolean;
+  /** Whole seconds remaining before auto-lock fires (0 when hidden). */
+  secondsUntilLock: number;
+
   unlockWithWallet: (w: DerivedWallet) => void;
   lock: () => void;
   forget: () => void;
   setActiveNode: (id: string) => void;
   toggleBalanceHidden: () => void;
   bumpActivity: () => void;
+  /** Dismiss the lock warning and restart the inactivity timer. */
+  stayUnlocked: () => void;
 }
 
 const WalletContext = createContext<WalletState | null>(null);
@@ -98,17 +105,55 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setStorageError(null);
   }, []);
 
+  const [lockWarningVisible, setLockWarningVisible] = useState(false);
+  const [secondsUntilLock, setSecondsUntilLock] = useState(0);
+  const lockWarningRef = useRef(false);
+
   const bumpActivity = useCallback(() => {
+    // Ignore ambient activity while the confirmation dialog is up — the user
+    // must explicitly choose "Stay signed in" or "Lock now".
+    if (lockWarningRef.current) return;
     lastActivityRef.current = Date.now();
   }, []);
 
+  const stayUnlocked = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    lockWarningRef.current = false;
+    setLockWarningVisible(false);
+    setSecondsUntilLock(0);
+  }, []);
+
   useEffect(() => {
-    if (status !== "unlocked") return;
-    const interval = setInterval(() => {
-      if (Date.now() - lastActivityRef.current > zokaConfig.autoLockMs) {
+    if (status !== "unlocked") {
+      lockWarningRef.current = false;
+      setLockWarningVisible(false);
+      setSecondsUntilLock(0);
+      return;
+    }
+    const tick = () => {
+      const idle = Date.now() - lastActivityRef.current;
+      const { autoLockMs, warnBeforeLockMs } = zokaConfig;
+      if (idle >= autoLockMs) {
+        lockWarningRef.current = false;
+        setLockWarningVisible(false);
+        setSecondsUntilLock(0);
         lock();
+        return;
       }
-    }, 5_000);
+      if (idle >= autoLockMs - warnBeforeLockMs) {
+        lockWarningRef.current = true;
+        setLockWarningVisible(true);
+        setSecondsUntilLock(Math.max(0, Math.ceil((autoLockMs - idle) / 1000)));
+      } else {
+        if (lockWarningRef.current) {
+          lockWarningRef.current = false;
+          setLockWarningVisible(false);
+          setSecondsUntilLock(0);
+        }
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1_000);
     const activity = () => bumpActivity();
     window.addEventListener("mousemove", activity, { passive: true });
     window.addEventListener("keydown", activity);
@@ -131,12 +176,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     balanceHidden,
     hasStoredWallet,
     storageError,
+    lockWarningVisible,
+    secondsUntilLock,
     unlockWithWallet,
     lock,
     forget,
     setActiveNode: setActiveNodeId,
     toggleBalanceHidden: () => setBalanceHidden((v) => !v),
     bumpActivity,
+    stayUnlocked,
   };
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
