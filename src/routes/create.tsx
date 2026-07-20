@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, Check, Copy, Eye, EyeOff, X } from "lucide-react";
 import { toast } from "sonner";
@@ -7,8 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { useWallet } from "@/wallet/WalletProvider";
+import { hasStoredWalletSync } from "@/wallet/storage/localWallet";
 
 export const Route = createFileRoute("/create")({
+  beforeLoad: () => {
+    if (hasStoredWalletSync()) throw redirect({ to: "/wallet" });
+  },
   component: CreatePage,
 });
 
