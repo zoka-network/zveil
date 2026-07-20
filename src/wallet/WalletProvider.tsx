@@ -26,12 +26,19 @@ interface WalletState {
   /** Non-null when localStorage has data that could not be parsed. */
   storageError: string | null;
 
+  /** True when the pre-lock confirmation dialog should be shown. */
+  lockWarningVisible: boolean;
+  /** Whole seconds remaining before auto-lock fires (0 when hidden). */
+  secondsUntilLock: number;
+
   unlockWithWallet: (w: DerivedWallet) => void;
   lock: () => void;
   forget: () => void;
   setActiveNode: (id: string) => void;
   toggleBalanceHidden: () => void;
   bumpActivity: () => void;
+  /** Dismiss the lock warning and restart the inactivity timer. */
+  stayUnlocked: () => void;
 }
 
 const WalletContext = createContext<WalletState | null>(null);
