@@ -104,6 +104,7 @@ export function WalletLayout() {
           <span>zero-knowledge · full ownership</span>
         </div>
       </footer>
+      <AutoLockDialog />
     </div>
   );
 }
