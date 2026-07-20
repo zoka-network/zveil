@@ -1,4 +1,5 @@
 import { LockKeyhole } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
 import { DevEngineBanner } from "./DevEngineBanner";
