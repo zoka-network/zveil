@@ -14,7 +14,7 @@ import {
   persistSession,
   persistWallet,
 } from "@/wallet/storage/localWallet";
-import { zokaConfig } from "@/wallet/config";
+
 
 export type WalletStatus = "empty" | "unlocked" | "locked";
 
