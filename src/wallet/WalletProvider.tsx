@@ -75,12 +75,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const lastActivityRef = useRef<number>(Date.now());
 
   // On mount, restore any wallet previously created on this device.
+  // If a session marker is present AND the last activity is still within the
+  // auto-lock window, restore the unlocked state so a page reload does not
+  // force the user to re-unlock. The password is NEVER persisted.
   useEffect(() => {
     const result = loadStoredWallet();
     if (result.kind === "ok") {
       setWallet(result.wallet);
-      setStatus("locked");
       setHasStoredWallet(true);
+      const session = loadSession();
+      const now = Date.now();
+      if (session && now - session.lastActivity < zokaConfig.autoLockMs) {
+        lastActivityRef.current = session.lastActivity;
+        setStatus("unlocked");
+      } else {
+        if (session) clearSession();
+        setStatus("locked");
+      }
     } else if (result.kind === "corrupt") {
       setStorageError(result.reason);
     }
@@ -92,17 +103,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setHasStoredWallet(true);
     setStorageError(null);
     persistWallet(w);
-    lastActivityRef.current = Date.now();
+    const now = Date.now();
+    lastActivityRef.current = now;
+    persistSession(now);
   }, []);
 
   const lock = useCallback(() => {
     engineRef.current.destroySensitiveState();
+    clearSession();
     setStatus((s) => (s === "unlocked" ? "locked" : s));
   }, []);
 
   const forget = useCallback(() => {
     engineRef.current.destroySensitiveState();
     clearStoredWallet();
+    clearSession();
     setWallet(null);
     setStatus("empty");
     setHasStoredWallet(false);
@@ -117,11 +132,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // Ignore ambient activity while the confirmation dialog is up — the user
     // must explicitly choose "Stay signed in" or "Lock now".
     if (lockWarningRef.current) return;
-    lastActivityRef.current = Date.now();
+    const now = Date.now();
+    lastActivityRef.current = now;
+    persistSession(now);
   }, []);
 
   const stayUnlocked = useCallback(() => {
-    lastActivityRef.current = Date.now();
+    const now = Date.now();
+    lastActivityRef.current = now;
+    persistSession(now);
     lockWarningRef.current = false;
     setLockWarningVisible(false);
     setSecondsUntilLock(0);
