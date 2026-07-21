@@ -8,6 +8,40 @@ import type { DerivedWallet, OpaqueKey } from "@/wallet/engine/ZokaWalletEngine"
 
 export const STORAGE_KEY = "zoka.wallet.public.v0";
 export const NODE_KEY = "zoka.wallet.node.v0";
+/**
+ * Session-scoped unlock marker. Stored in sessionStorage so it survives page
+ * reloads within the same tab but is cleared when the tab/browser closes.
+ * We ONLY persist the last-activity timestamp — never the password or any
+ * decrypted key material.
+ */
+export const SESSION_KEY = "zoka.wallet.session.v0";
+
+export interface StoredSession {
+  readonly lastActivity: number;
+}
+
+export function loadSession(): StoredSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    if (typeof parsed?.lastActivity !== "number") return null;
+    return { lastActivity: parsed.lastActivity };
+  } catch {
+    return null;
+  }
+}
+
+export function persistSession(lastActivity: number): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ lastActivity }));
+}
+
+export function clearSession(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(SESSION_KEY);
+}
 
 export interface StoredPublicWallet {
   readonly primaryAddress: { value: string; index?: number };
