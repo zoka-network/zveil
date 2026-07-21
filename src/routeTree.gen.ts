@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as RestoreRouteImport } from './routes/restore'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalletIndexRouteImport } from './routes/wallet.index'
@@ -20,6 +21,9 @@ import { Route as WalletReceiveRouteImport } from './routes/wallet.receive'
 import { Route as WalletNetworkRouteImport } from './routes/wallet.network'
 import { Route as WalletActivityRouteImport } from './routes/wallet.activity'
 import { Route as WalletAboutRouteImport } from './routes/wallet.about'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -29,6 +33,11 @@ const WalletRoute = WalletRouteImport.update({
 const RestoreRoute = RestoreRouteImport.update({
   id: '/restore',
   path: '/restore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -76,12 +85,33 @@ const WalletAboutRoute = WalletAboutRouteImport.update({
   path: '/about',
   getParentRoute: () => WalletRoute,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/mcp': typeof McpRoute
   '/restore': typeof RestoreRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/wallet/about': typeof WalletAboutRoute
   '/wallet/activity': typeof WalletActivityRoute
   '/wallet/network': typeof WalletNetworkRoute
@@ -89,11 +119,15 @@ export interface FileRoutesByFullPath {
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/send': typeof WalletSendRoute
   '/wallet/': typeof WalletIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/mcp': typeof McpRoute
   '/restore': typeof RestoreRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/wallet/about': typeof WalletAboutRoute
   '/wallet/activity': typeof WalletActivityRoute
   '/wallet/network': typeof WalletNetworkRoute
@@ -101,13 +135,17 @@ export interface FileRoutesByTo {
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/send': typeof WalletSendRoute
   '/wallet': typeof WalletIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/mcp': typeof McpRoute
   '/restore': typeof RestoreRoute
   '/wallet': typeof WalletRouteWithChildren
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/wallet/about': typeof WalletAboutRoute
   '/wallet/activity': typeof WalletActivityRoute
   '/wallet/network': typeof WalletNetworkRoute
@@ -115,14 +153,18 @@ export interface FileRoutesById {
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/send': typeof WalletSendRoute
   '/wallet/': typeof WalletIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/create'
+    | '/mcp'
     | '/restore'
     | '/wallet'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/wallet/about'
     | '/wallet/activity'
     | '/wallet/network'
@@ -130,11 +172,15 @@ export interface FileRouteTypes {
     | '/wallet/security'
     | '/wallet/send'
     | '/wallet/'
+    | '/.mcp/invoke-tool/$tool'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/create'
+    | '/mcp'
     | '/restore'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/wallet/about'
     | '/wallet/activity'
     | '/wallet/network'
@@ -142,12 +188,16 @@ export interface FileRouteTypes {
     | '/wallet/security'
     | '/wallet/send'
     | '/wallet'
+    | '/.mcp/invoke-tool/$tool'
   id:
     | '__root__'
     | '/'
     | '/create'
+    | '/mcp'
     | '/restore'
     | '/wallet'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/wallet/about'
     | '/wallet/activity'
     | '/wallet/network'
@@ -155,13 +205,18 @@ export interface FileRouteTypes {
     | '/wallet/security'
     | '/wallet/send'
     | '/wallet/'
+    | '/.mcp/invoke-tool/$tool'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
+  McpRoute: typeof McpRoute
   RestoreRoute: typeof RestoreRoute
   WalletRoute: typeof WalletRouteWithChildren
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/restore'
       fullPath: '/restore'
       preLoaderRoute: typeof RestoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -243,6 +305,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletAboutRouteImport
       parentRoute: typeof WalletRoute
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -272,8 +355,13 @@ const WalletRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
+  McpRoute: McpRoute,
   RestoreRoute: RestoreRoute,
   WalletRoute: WalletRouteWithChildren,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
