@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -129,10 +129,56 @@ function statusVariant(s: TxStatus) {
   return "bg-destructive/15 text-destructive border-destructive/30";
 }
 
+const FILTERS_STORAGE_KEY = "zoka.wallet.activity.filters.v0";
+
+interface StoredFilters {
+  typeFilter: TypeFilter;
+  fromDate?: string; // ISO
+  toDate?: string; // ISO
+}
+
+function loadFilters(): StoredFilters {
+  if (typeof window === "undefined") return { typeFilter: "all" };
+  try {
+    const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (!raw) return { typeFilter: "all" };
+    const parsed = JSON.parse(raw) as Partial<StoredFilters>;
+    const type: TypeFilter =
+      parsed.typeFilter === "received" || parsed.typeFilter === "sent" ? parsed.typeFilter : "all";
+    return {
+      typeFilter: type,
+      fromDate: typeof parsed.fromDate === "string" ? parsed.fromDate : undefined,
+      toDate: typeof parsed.toDate === "string" ? parsed.toDate : undefined,
+    };
+  } catch {
+    return { typeFilter: "all" };
+  }
+}
+
 function ActivityPage() {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
-  const [toDate, setToDate] = useState<Date | undefined>(undefined);
+  const initial = useMemo(() => loadFilters(), []);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(initial.typeFilter);
+  const [fromDate, setFromDate] = useState<Date | undefined>(
+    initial.fromDate ? new Date(initial.fromDate) : undefined,
+  );
+  const [toDate, setToDate] = useState<Date | undefined>(
+    initial.toDate ? new Date(initial.toDate) : undefined,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isDefault = typeFilter === "all" && !fromDate && !toDate;
+    if (isDefault) {
+      window.localStorage.removeItem(FILTERS_STORAGE_KEY);
+      return;
+    }
+    const payload: StoredFilters = {
+      typeFilter,
+      fromDate: fromDate?.toISOString(),
+      toDate: toDate?.toISOString(),
+    };
+    window.localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(payload));
+  }, [typeFilter, fromDate, toDate]);
 
   const filtered = useMemo(() => {
     return MOCK_TRANSACTIONS.filter((tx) => {
