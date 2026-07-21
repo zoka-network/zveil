@@ -5,12 +5,16 @@ import { MockZokaRpcClient } from "@/wallet/rpc/HttpZokaRpcClient";
 import type { RpcNode, ZokaRpcClient } from "@/wallet/rpc/ZokaRpcClient";
 import { authorizedNodes, zokaConfig } from "@/wallet/config";
 import {
+  clearSession,
   clearStoredWallet,
+  loadSession,
   loadStoredNodeId,
   loadStoredWallet,
   persistNodeId,
+  persistSession,
   persistWallet,
 } from "@/wallet/storage/localWallet";
+import { zokaConfig } from "@/wallet/config";
 
 export type WalletStatus = "empty" | "unlocked" | "locked";
 
