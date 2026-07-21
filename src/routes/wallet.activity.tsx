@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
