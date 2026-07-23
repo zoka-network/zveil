@@ -58,11 +58,12 @@ function isValidPayload(x: unknown): x is StoredPublicWallet {
   if (!x || typeof x !== "object") return false;
   const o = x as Record<string, unknown>;
   const addr = o.primaryAddress as Record<string, unknown> | undefined;
+  // publicScanKey/publicSpendKey are optional: the native engine (which wraps
+  // the zoka CLI) does not surface these separately, and legitimately stores
+  // them as "". Only the address is required to consider a wallet valid.
   return (
     typeof o.publicScanKey === "string" &&
-    o.publicScanKey.length > 0 &&
     typeof o.publicSpendKey === "string" &&
-    o.publicSpendKey.length > 0 &&
     !!addr &&
     typeof addr.value === "string" &&
     addr.value.length > 0
@@ -71,7 +72,18 @@ function isValidPayload(x: unknown): x is StoredPublicWallet {
 
 export function hasStoredWalletSync(): boolean {
   if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(STORAGE_KEY) !== null;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  // Must actually validate, not just check for a key: if storage holds
+  // unparseable/invalid data, treating it as "present" sends "/" straight to
+  // "/wallet" (beforeLoad), whose WalletLayout then bounces back to "/"
+  // because the wallet never loaded — an infinite redirect loop that renders
+  // nothing on every cycle (a blank screen with no console error).
+  try {
+    return isValidPayload(JSON.parse(raw));
+  } catch {
+    return false;
+  }
 }
 
 export function loadStoredWallet(): LoadResult {

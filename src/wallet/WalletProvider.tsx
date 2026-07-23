@@ -1,8 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { MockZokaWalletEngine } from "@/wallet/engine/MockZokaWalletEngine";
 import type { DerivedWallet, ZokaWalletEngine } from "@/wallet/engine/ZokaWalletEngine";
-import { MockZokaRpcClient } from "@/wallet/rpc/HttpZokaRpcClient";
 import type { RpcNode, ZokaRpcClient } from "@/wallet/rpc/ZokaRpcClient";
+import { createEngine, createRpcClient } from "@/wallet/runtime";
+import { isDesktop } from "@/wallet/runtime";
+import {
+  nodeRunState,
+  startConnectivity,
+  type NodeRunState,
+} from "@/wallet/nodeControl";
 import { authorizedNodes, zokaConfig } from "@/wallet/config";
 import {
   clearSession,
@@ -25,6 +30,8 @@ interface WalletState {
   rpc: ZokaRpcClient;
   activeNode: RpcNode;
   nodes: readonly RpcNode[];
+  /** Connection state of the local node (attached/managed/ready). */
+  nodeState: NodeRunState;
   balanceHidden: boolean;
   hasStoredWallet: boolean;
   /** Non-null when localStorage has data that could not be parsed. */
@@ -36,6 +43,8 @@ interface WalletState {
   secondsUntilLock: number;
 
   unlockWithWallet: (w: DerivedWallet) => void;
+  /** Verify the password and re-establish the session for the stored wallet. */
+  unlockSession: (password: string) => Promise<boolean>;
   lock: () => void;
   forget: () => void;
   setActiveNode: (id: string) => void;
@@ -48,7 +57,7 @@ interface WalletState {
 const WalletContext = createContext<WalletState | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const engineRef = useRef<ZokaWalletEngine>(new MockZokaWalletEngine());
+  const engineRef = useRef<ZokaWalletEngine>(createEngine());
 
   // Restore the last selected RPC node (if any) — falls back to default.
   const [activeNodeId, setActiveNodeId] = useState<string>(() => {
@@ -60,15 +69,40 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     () => authorizedNodes.find((n) => n.id === activeNodeId) ?? authorizedNodes[0],
     [activeNodeId],
   );
-  const rpcRef = useRef<ZokaRpcClient>(new MockZokaRpcClient(activeNode));
+  const rpcRef = useRef<ZokaRpcClient>(createRpcClient(activeNode));
 
   useEffect(() => {
-    rpcRef.current = new MockZokaRpcClient(activeNode);
+    rpcRef.current = createRpcClient(activeNode);
     persistNodeId(activeNode.id);
   }, [activeNode]);
 
   const [wallet, setWallet] = useState<DerivedWallet | null>(null);
   const [status, setStatus] = useState<WalletStatus>("empty");
+  const [nodeState, setNodeState] = useState<NodeRunState>({
+    attached: false,
+    managed: false,
+    ready: false,
+  });
+
+  // On desktop, bring up (or attach to) a node and keep its status fresh so the
+  // UI can show the connection state. In the browser preview this is a no-op.
+  useEffect(() => {
+    if (!isDesktop()) {
+      setNodeState({ attached: true, managed: false, ready: true });
+      return;
+    }
+    let alive = true;
+    void startConnectivity()
+      .then((s) => alive && setNodeState(s))
+      .catch(() => {});
+    const iv = setInterval(() => {
+      void nodeRunState().then((s) => alive && setNodeState(s));
+    }, 5000);
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+  }, []);
   const [balanceHidden, setBalanceHidden] = useState(true);
   const [hasStoredWallet, setHasStoredWallet] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -113,6 +147,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     clearSession();
     setStatus((s) => (s === "unlocked" ? "locked" : s));
   }, []);
+
+  // Re-establish the native crypto session for the stored wallet. Resolves
+  // false when the password is wrong, so the locked screen can show an error.
+  const unlockSession = useCallback(
+    async (password: string): Promise<boolean> => {
+      if (!wallet) return false;
+      const ok = await engineRef.current.unlock(wallet.primaryAddress.value, password);
+      if (ok) {
+        setStatus("unlocked");
+        const now = Date.now();
+        lastActivityRef.current = now;
+        persistSession(now);
+      }
+      return ok;
+    },
+    [wallet],
+  );
 
   const forget = useCallback(() => {
     engineRef.current.destroySensitiveState();
@@ -196,12 +247,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     rpc: rpcRef.current,
     activeNode,
     nodes: authorizedNodes,
+    nodeState,
     balanceHidden,
     hasStoredWallet,
     storageError,
     lockWarningVisible,
     secondsUntilLock,
     unlockWithWallet,
+    unlockSession,
     lock,
     forget,
     setActiveNode: setActiveNodeId,

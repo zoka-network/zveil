@@ -6,7 +6,7 @@ import { MOCK_RPC_NODES } from "@/wallet/rpc/HttpZokaRpcClient";
  * Read from Vite env when provided.
  */
 export const zokaConfig = {
-  network: (import.meta.env.VITE_ZOKA_NETWORK as string) ?? "testnet",
+  network: (import.meta.env.VITE_ZOKA_NETWORK as string) ?? "mainnet",
   defaultRpc: (import.meta.env.VITE_ZOKA_DEFAULT_RPC as string) ?? MOCK_RPC_NODES[1].url,
   explorerUrl: (import.meta.env.VITE_ZOKA_EXPLORER_URL as string) ?? "",
   addressPrefix: (import.meta.env.VITE_ZOKA_ADDRESS_PREFIX as string) ?? "zoka1",

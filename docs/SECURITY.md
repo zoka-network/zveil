@@ -12,7 +12,7 @@ The following data MUST never leave the user's browser:
 
 They must not appear in:
 
-- Network requests to Supabase, Lovable Cloud, analytics, or any server
+- Network requests to any backend, analytics, or third-party server
 - URL parameters or hash fragments
 - Console logs, error reports, or breadcrumbs
 - `localStorage`, `sessionStorage`, `IndexedDB` as plaintext
@@ -50,6 +50,6 @@ Two modes:
 
 ## Reporting
 
-`reportLovableError` is the platform's error reporter. Sensitive values must
-never be passed to it. Prefer generic messages ("failed to sign") over
-including any transaction/secret detail.
+`reportAppError` is the local, console-only error reporter — it transmits
+nothing off-device. Sensitive values must never be passed to it. Prefer generic
+messages ("failed to sign") over including any transaction/secret detail.

@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarIcon, Filter, RefreshCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
@@ -14,6 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CopyButton } from "@/components/zoka/CopyButton";
+import { isDesktop } from "@/wallet/runtime";
+import { fetchWalletHistory } from "@/wallet/walletStore";
 
 export const Route = createFileRoute("/wallet/activity")({
   component: ActivityPage,
@@ -42,7 +47,7 @@ interface MockTx {
  */
 const now = Date.now();
 const day = 86_400_000;
-const MOCK_TRANSACTIONS: MockTx[] = [
+const FAKE_TRANSACTIONS: MockTx[] = [
   {
     id: "9f2c" + "a".repeat(56) + "1b",
     type: "received",
@@ -116,6 +121,10 @@ const MOCK_TRANSACTIONS: MockTx[] = [
   },
 ];
 
+// Real history wiring is pending the live `wallet-history --json` shape; until
+// then the desktop app shows an honest empty list rather than sample data.
+const MOCK_TRANSACTIONS: MockTx[] = isDesktop() ? [] : FAKE_TRANSACTIONS;
+
 type TypeFilter = "all" | TxType;
 
 function shorten(s: string, head = 8, tail = 6) {
@@ -127,6 +136,17 @@ function statusVariant(s: TxStatus) {
   if (s === "confirmed") return "bg-success/15 text-success border-success/30";
   if (s === "pending") return "bg-warning/15 text-warning border-warning/30";
   return "bg-destructive/15 text-destructive border-destructive/30";
+}
+
+/** Maps the CLI's raw status string ("confirmed (private)", "verified", …)
+ * to a badge color bucket while keeping the original text as the label. */
+function mapStatus(raw: string): { bucket: TxStatus; label: string } {
+  const lower = raw.toLowerCase();
+  if (lower.includes("failed")) return { bucket: "failed", label: raw };
+  if (lower.includes("confirmed") || lower.includes("verified")) {
+    return { bucket: "confirmed", label: raw };
+  }
+  return { bucket: "pending", label: raw };
 }
 
 const FILTERS_STORAGE_KEY = "zoka.wallet.activity.filters.v0";
@@ -156,6 +176,7 @@ function loadFilters(): StoredFilters {
 }
 
 function ActivityPage() {
+  const desktop = isDesktop();
   const initial = useMemo(() => loadFilters(), []);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(initial.typeFilter);
   const [fromDate, setFromDate] = useState<Date | undefined>(
@@ -164,6 +185,18 @@ function ActivityPage() {
   const [toDate, setToDate] = useState<Date | undefined>(
     initial.toDate ? new Date(initial.toDate) : undefined,
   );
+
+  // Real history: the CLI's `wallet-history --json` hides amount/direction by
+  // design (its own privacy default), so on desktop we show what it actually
+  // gives us — hash, status, timestamp, output count — rather than force real
+  // data into the richer sent/received/amount UI the mock dataset was built
+  // for below.
+  const history = useQuery({
+    queryKey: ["wallet-history"],
+    queryFn: fetchWalletHistory,
+    enabled: desktop,
+    refetchInterval: 20_000,
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -205,6 +238,97 @@ function ActivityPage() {
     }
     return { received, sent };
   }, [filtered]);
+
+  if (desktop) {
+    const entries = history.data ?? [];
+    return (
+      <div className="space-y-6">
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Activity</h1>
+            <p className="mono mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+              Detected locally · Never uploaded
+            </p>
+          </div>
+          <button
+            onClick={() => void history.refetch()}
+            className="mono flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className={"h-3 w-3 " + (history.isFetching ? "animate-spin" : "")} />
+            Refresh
+          </button>
+        </header>
+
+        <section className="zk-panel divide-y divide-border">
+          {history.isLoading ? (
+            <div className="space-y-0">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 p-4 md:p-5">
+                  <Skeleton className="h-9 w-9 shrink-0 rounded-md" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="mono py-16 text-center text-xs text-muted-foreground">
+              No transactions detected on this device.
+            </div>
+          ) : (
+            entries.map((tx) => {
+              const { bucket, label } = mapStatus(tx.status);
+              return (
+                <div
+                  key={tx.txHash}
+                  className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-accent text-foreground">
+                      <ArrowUpRight className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Private transfer</span>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "mono text-[9px] uppercase tracking-widest",
+                            statusVariant(bucket),
+                          )}
+                        >
+                          {label}
+                        </Badge>
+                      </div>
+                      <div className="mono mt-0.5 text-[11px] text-muted-foreground">
+                        {tx.outputs} output{tx.outputs === 1 ? "" : "s"} · amount hidden
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start gap-1 md:items-end">
+                    <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {tx.timestamp ? format(tx.timestamp * 1000, "PP p") : "—"}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="mono text-[10px] text-muted-foreground">
+                        {shorten(tx.txHash, 10, 8)}
+                      </span>
+                      <CopyButton value={tx.txHash} label="Copy transaction hash" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </section>
+
+        <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Amounts stay private by design · Only you can see them via your scan key
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

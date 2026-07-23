@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { reportLovableError } from "@/lib/lovable-error-reporting";
+import { reportAppError } from "@/lib/error-reporting";
 
 interface Props {
   children: ReactNode;
@@ -18,7 +18,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error) {
     console.error("GlobalErrorBoundary caught:", error);
-    reportLovableError(error, { boundary: "global_error_boundary" });
+    reportAppError(error, { boundary: "global_error_boundary" });
   }
 
   reset = () => {

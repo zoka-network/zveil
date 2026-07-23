@@ -4,19 +4,28 @@ import { AlertTriangle, ArrowLeft, Check, Copy, Eye, EyeOff, X } from "lucide-re
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { useWallet } from "@/wallet/WalletProvider";
+import { errToString } from "@/wallet/errors";
 import { hasStoredWalletSync } from "@/wallet/storage/localWallet";
 
 export const Route = createFileRoute("/create")({
-  beforeLoad: () => {
-    if (hasStoredWalletSync()) throw redirect({ to: "/wallet" });
+  // `?add=true` lets the user create an additional wallet from inside the app
+  // (each with its own fresh seed); without it, an existing wallet redirects to
+  // the wallet screen.
+  validateSearch: (s: Record<string, unknown>): { add?: boolean } => {
+    const add = s.add === true || s.add === "true" || s.add === "1";
+    return add ? { add: true } : {};
+  },
+  beforeLoad: ({ search }) => {
+    if (!search.add && hasStoredWalletSync()) throw redirect({ to: "/wallet" });
   },
   component: CreatePage,
 });
 
-type Step = "warn" | "reveal" | "confirm" | "done";
+type Step = "warn" | "reveal" | "confirm" | "password" | "done";
 type WordCount = 12 | 24;
 
 const DISTRACTOR_POOL = [
@@ -50,20 +59,24 @@ function pickIndices(total: number, count: number): number[] {
 
 function CreatePage() {
   const { engine, unlockWithWallet, hasStoredWallet } = useWallet();
+  const { add } = Route.useSearch();
   const navigate = useNavigate();
 
-  // A wallet already exists on this device — never offer to create a second
-  // one silently. Redirect to /wallet so the user unlocks (or explicitly
-  // forgets) the existing wallet first.
+  // Outside "add" mode, an existing wallet redirects away. In "add" mode we let
+  // the user create another wallet; finishing switches the active wallet to it.
   useEffect(() => {
-    if (hasStoredWallet) void navigate({ to: "/wallet" });
-  }, [hasStoredWallet, navigate]);
+    if (!add && hasStoredWallet) void navigate({ to: "/wallet" });
+  }, [add, hasStoredWallet, navigate]);
 
   const [step, setStep] = useState<Step>("warn");
   const [wordCount, setWordCount] = useState<WordCount>(12);
   const [acknowledged, setAcknowledged] = useState(false);
   const [phrase, setPhrase] = useState<string>("");
   const [revealed, setRevealed] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
 
   const words = useMemo(() => phrase.split(" ").filter(Boolean), [phrase]);
@@ -136,20 +149,32 @@ function CreatePage() {
   const allCorrect =
     challenges.length > 0 && challenges.every((_, i) => picks[i]?.correct);
 
-  // Auto-finalize once every challenge is correct.
+  // Once every challenge is correct, move on to set a password.
   useEffect(() => {
     if (step !== "confirm" || !allCorrect) return;
-    void finalize();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setStep("password");
   }, [step, allCorrect]);
 
+  const passwordValid = password.length >= 8 && password === passwordConfirm;
+
   async function finalize() {
-    const wallet = await engine.deriveWallet(phrase);
-    setPhrase("");
-    setPicks({});
-    unlockWithWallet(wallet);
-    setStep("done");
-    setTimeout(() => void navigate({ to: "/wallet" }), 500);
+    if (!passwordValid || creating) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const wallet = await engine.deriveWallet(phrase, password);
+      setPhrase("");
+      setPicks({});
+      setPassword("");
+      setPasswordConfirm("");
+      unlockWithWallet(wallet);
+      setStep("done");
+      setTimeout(() => void navigate({ to: "/wallet" }), 500);
+    } catch (e) {
+      setCreateError(errToString(e));
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -292,6 +317,71 @@ function CreatePage() {
                 I saved it — continue
               </Button>
             </div>
+          </section>
+        )}
+
+        {step === "password" && (
+          <section className="zk-panel-elevated p-8">
+            <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Step 4 · Protect
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Set a password</h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              This password encrypts your keys on this device. You'll enter it to unlock the wallet
+              and to sign transactions. It is never sent anywhere and cannot be recovered — if you
+              forget it, restore from your seed phrase.
+            </p>
+
+            <form
+              className="mt-6 space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void finalize();
+              }}
+            >
+              <div>
+                <label className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Password
+                </label>
+                <Input
+                  type="password"
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <label className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Confirm password
+                </label>
+                <Input
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="mt-1.5"
+                />
+              </div>
+              {passwordConfirm.length > 0 && password !== passwordConfirm && (
+                <p className="mono text-[11px] uppercase tracking-wider text-destructive">
+                  Passwords do not match
+                </p>
+              )}
+              {createError && (
+                <p className="mono text-[11px] uppercase tracking-wider text-destructive">
+                  {createError}
+                </p>
+              )}
+              <Button
+                type="submit"
+                disabled={!passwordValid || creating}
+                className="mono w-full uppercase tracking-wider"
+              >
+                {creating ? "Creating wallet…" : "Create wallet"}
+              </Button>
+            </form>
           </section>
         )}
 

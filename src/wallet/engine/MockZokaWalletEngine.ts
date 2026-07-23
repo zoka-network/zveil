@@ -68,11 +68,16 @@ export class MockZokaWalletEngine implements ZokaWalletEngine {
     return words.every((w) => MOCK_WORDS.includes(w.toLowerCase()));
   }
 
-  async restoreWallet(mnemonic: string): Promise<DerivedWallet> {
+  async restoreWallet(mnemonic: string, _password?: string): Promise<DerivedWallet> {
     return this.deriveWallet(mnemonic);
   }
 
-  async deriveWallet(_mnemonic: string): Promise<DerivedWallet> {
+  async unlock(_address: string, _password: string): Promise<boolean> {
+    // The mock stores nothing encrypted; any password "unlocks".
+    return true;
+  }
+
+  async deriveWallet(_mnemonic: string, _password?: string): Promise<DerivedWallet> {
     // Placeholder address — NOT a real Zoka address.
     return {
       primaryAddress: {
@@ -161,6 +166,7 @@ export class WasmZokaWalletEngine implements ZokaWalletEngine {
   validateMnemonic(): Promise<boolean> { return this.notReady("validateMnemonic"); }
   restoreWallet(): Promise<DerivedWallet> { return this.notReady("restoreWallet"); }
   deriveWallet(): Promise<DerivedWallet> { return this.notReady("deriveWallet"); }
+  unlock(): Promise<boolean> { return this.notReady("unlock"); }
   scanWallet(): Promise<ScanWalletResult> { return this.notReady("scanWallet"); }
   buildTransaction(): Promise<UnsignedZokaTransaction> { return this.notReady("buildTransaction"); }
   proveTransaction(): Promise<ProvedZokaTransaction> { return this.notReady("proveTransaction"); }

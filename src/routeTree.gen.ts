@@ -9,35 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WalletRouteImport } from './routes/wallet'
-import { Route as RestoreRouteImport } from './routes/restore'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as RestoreRouteImport } from './routes/restore'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as WalletIndexRouteImport } from './routes/wallet.index'
-import { Route as WalletSendRouteImport } from './routes/wallet.send'
-import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
-import { Route as WalletReceiveRouteImport } from './routes/wallet.receive'
-import { Route as WalletNetworkRouteImport } from './routes/wallet.network'
-import { Route as WalletActivityRouteImport } from './routes/wallet.activity'
 import { Route as WalletAboutRouteImport } from './routes/wallet.about'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as WalletActivityRouteImport } from './routes/wallet.activity'
+import { Route as WalletNetworkRouteImport } from './routes/wallet.network'
+import { Route as WalletPrivacyRouteImport } from './routes/wallet.privacy'
+import { Route as WalletReceiveRouteImport } from './routes/wallet.receive'
+import { Route as WalletSecurityRouteImport } from './routes/wallet.security'
+import { Route as WalletSendRouteImport } from './routes/wallet.send'
 
-const WalletRoute = WalletRouteImport.update({
-  id: '/wallet',
-  path: '/wallet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RestoreRoute = RestoreRouteImport.update({
-  id: '/restore',
-  path: '/restore',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -45,9 +32,14 @@ const CreateRoute = CreateRouteImport.update({
   path: '/create',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const RestoreRoute = RestoreRouteImport.update({
+  id: '/restore',
+  path: '/restore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WalletIndexRoute = WalletIndexRouteImport.update({
@@ -55,24 +47,9 @@ const WalletIndexRoute = WalletIndexRouteImport.update({
   path: '/',
   getParentRoute: () => WalletRoute,
 } as any)
-const WalletSendRoute = WalletSendRouteImport.update({
-  id: '/send',
-  path: '/send',
-  getParentRoute: () => WalletRoute,
-} as any)
-const WalletSecurityRoute = WalletSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => WalletRoute,
-} as any)
-const WalletReceiveRoute = WalletReceiveRouteImport.update({
-  id: '/receive',
-  path: '/receive',
-  getParentRoute: () => WalletRoute,
-} as any)
-const WalletNetworkRoute = WalletNetworkRouteImport.update({
-  id: '/network',
-  path: '/network',
+const WalletAboutRoute = WalletAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => WalletRoute,
 } as any)
 const WalletActivityRoute = WalletActivityRouteImport.update({
@@ -80,166 +57,132 @@ const WalletActivityRoute = WalletActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => WalletRoute,
 } as any)
-const WalletAboutRoute = WalletAboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const WalletNetworkRoute = WalletNetworkRouteImport.update({
+  id: '/network',
+  path: '/network',
   getParentRoute: () => WalletRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const WalletPrivacyRoute = WalletPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletReceiveRoute = WalletReceiveRouteImport.update({
+  id: '/receive',
+  path: '/receive',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletSecurityRoute = WalletSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => WalletRoute,
+} as any)
+const WalletSendRoute = WalletSendRouteImport.update({
+  id: '/send',
+  path: '/send',
+  getParentRoute: () => WalletRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
-  '/mcp': typeof McpRoute
   '/restore': typeof RestoreRoute
   '/wallet': typeof WalletRouteWithChildren
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/wallet/about': typeof WalletAboutRoute
   '/wallet/activity': typeof WalletActivityRoute
   '/wallet/network': typeof WalletNetworkRoute
+  '/wallet/privacy': typeof WalletPrivacyRoute
   '/wallet/receive': typeof WalletReceiveRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/send': typeof WalletSendRoute
   '/wallet/': typeof WalletIndexRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
-  '/mcp': typeof McpRoute
   '/restore': typeof RestoreRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/wallet/about': typeof WalletAboutRoute
   '/wallet/activity': typeof WalletActivityRoute
   '/wallet/network': typeof WalletNetworkRoute
+  '/wallet/privacy': typeof WalletPrivacyRoute
   '/wallet/receive': typeof WalletReceiveRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/send': typeof WalletSendRoute
   '/wallet': typeof WalletIndexRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
-  '/mcp': typeof McpRoute
   '/restore': typeof RestoreRoute
   '/wallet': typeof WalletRouteWithChildren
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/wallet/about': typeof WalletAboutRoute
   '/wallet/activity': typeof WalletActivityRoute
   '/wallet/network': typeof WalletNetworkRoute
+  '/wallet/privacy': typeof WalletPrivacyRoute
   '/wallet/receive': typeof WalletReceiveRoute
   '/wallet/security': typeof WalletSecurityRoute
   '/wallet/send': typeof WalletSendRoute
   '/wallet/': typeof WalletIndexRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/create'
-    | '/mcp'
     | '/restore'
     | '/wallet'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/wallet/about'
     | '/wallet/activity'
     | '/wallet/network'
+    | '/wallet/privacy'
     | '/wallet/receive'
     | '/wallet/security'
     | '/wallet/send'
     | '/wallet/'
-    | '/.mcp/invoke-tool/$tool'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/create'
-    | '/mcp'
     | '/restore'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/wallet/about'
     | '/wallet/activity'
     | '/wallet/network'
+    | '/wallet/privacy'
     | '/wallet/receive'
     | '/wallet/security'
     | '/wallet/send'
     | '/wallet'
-    | '/.mcp/invoke-tool/$tool'
   id:
     | '__root__'
     | '/'
     | '/create'
-    | '/mcp'
     | '/restore'
     | '/wallet'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/wallet/about'
     | '/wallet/activity'
     | '/wallet/network'
+    | '/wallet/privacy'
     | '/wallet/receive'
     | '/wallet/security'
     | '/wallet/send'
     | '/wallet/'
-    | '/.mcp/invoke-tool/$tool'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
-  McpRoute: typeof McpRoute
   RestoreRoute: typeof RestoreRoute
   WalletRoute: typeof WalletRouteWithChildren
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wallet': {
-      id: '/wallet'
-      path: '/wallet'
-      fullPath: '/wallet'
-      preLoaderRoute: typeof WalletRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/restore': {
-      id: '/restore'
-      path: '/restore'
-      fullPath: '/restore'
-      preLoaderRoute: typeof RestoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -249,11 +192,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/restore': {
+      id: '/restore'
+      path: '/restore'
+      fullPath: '/restore'
+      preLoaderRoute: typeof RestoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wallet/': {
@@ -263,32 +213,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletIndexRouteImport
       parentRoute: typeof WalletRoute
     }
-    '/wallet/send': {
-      id: '/wallet/send'
-      path: '/send'
-      fullPath: '/wallet/send'
-      preLoaderRoute: typeof WalletSendRouteImport
-      parentRoute: typeof WalletRoute
-    }
-    '/wallet/security': {
-      id: '/wallet/security'
-      path: '/security'
-      fullPath: '/wallet/security'
-      preLoaderRoute: typeof WalletSecurityRouteImport
-      parentRoute: typeof WalletRoute
-    }
-    '/wallet/receive': {
-      id: '/wallet/receive'
-      path: '/receive'
-      fullPath: '/wallet/receive'
-      preLoaderRoute: typeof WalletReceiveRouteImport
-      parentRoute: typeof WalletRoute
-    }
-    '/wallet/network': {
-      id: '/wallet/network'
-      path: '/network'
-      fullPath: '/wallet/network'
-      preLoaderRoute: typeof WalletNetworkRouteImport
+    '/wallet/about': {
+      id: '/wallet/about'
+      path: '/about'
+      fullPath: '/wallet/about'
+      preLoaderRoute: typeof WalletAboutRouteImport
       parentRoute: typeof WalletRoute
     }
     '/wallet/activity': {
@@ -298,33 +227,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletActivityRouteImport
       parentRoute: typeof WalletRoute
     }
-    '/wallet/about': {
-      id: '/wallet/about'
-      path: '/about'
-      fullPath: '/wallet/about'
-      preLoaderRoute: typeof WalletAboutRouteImport
+    '/wallet/network': {
+      id: '/wallet/network'
+      path: '/network'
+      fullPath: '/wallet/network'
+      preLoaderRoute: typeof WalletNetworkRouteImport
       parentRoute: typeof WalletRoute
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
+    '/wallet/privacy': {
+      id: '/wallet/privacy'
+      path: '/privacy'
+      fullPath: '/wallet/privacy'
+      preLoaderRoute: typeof WalletPrivacyRouteImport
+      parentRoute: typeof WalletRoute
     }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/wallet/receive': {
+      id: '/wallet/receive'
+      path: '/receive'
+      fullPath: '/wallet/receive'
+      preLoaderRoute: typeof WalletReceiveRouteImport
+      parentRoute: typeof WalletRoute
     }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
+    '/wallet/security': {
+      id: '/wallet/security'
+      path: '/security'
+      fullPath: '/wallet/security'
+      preLoaderRoute: typeof WalletSecurityRouteImport
+      parentRoute: typeof WalletRoute
+    }
+    '/wallet/send': {
+      id: '/wallet/send'
+      path: '/send'
+      fullPath: '/wallet/send'
+      preLoaderRoute: typeof WalletSendRouteImport
+      parentRoute: typeof WalletRoute
     }
   }
 }
@@ -333,6 +269,7 @@ interface WalletRouteChildren {
   WalletAboutRoute: typeof WalletAboutRoute
   WalletActivityRoute: typeof WalletActivityRoute
   WalletNetworkRoute: typeof WalletNetworkRoute
+  WalletPrivacyRoute: typeof WalletPrivacyRoute
   WalletReceiveRoute: typeof WalletReceiveRoute
   WalletSecurityRoute: typeof WalletSecurityRoute
   WalletSendRoute: typeof WalletSendRoute
@@ -343,6 +280,7 @@ const WalletRouteChildren: WalletRouteChildren = {
   WalletAboutRoute: WalletAboutRoute,
   WalletActivityRoute: WalletActivityRoute,
   WalletNetworkRoute: WalletNetworkRoute,
+  WalletPrivacyRoute: WalletPrivacyRoute,
   WalletReceiveRoute: WalletReceiveRoute,
   WalletSecurityRoute: WalletSecurityRoute,
   WalletSendRoute: WalletSendRoute,
@@ -355,24 +293,9 @@ const WalletRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
-  McpRoute: McpRoute,
   RestoreRoute: RestoreRoute,
   WalletRoute: WalletRouteWithChildren,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { useWallet } from "@/wallet/WalletProvider";
+import { errToString } from "@/wallet/errors";
+import { isDesktop } from "@/wallet/runtime";
 import { hasStoredWalletSync } from "@/wallet/storage/localWallet";
 
 export const Route = createFileRoute("/restore")({
@@ -43,7 +45,11 @@ function RestorePage() {
   const [words, setWords] = useState<string[]>(() => Array.from({ length: 12 }, () => ""));
   const [focused, setFocused] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const desktop = isDesktop();
 
   function changeCount(n: WordCount) {
     setWordCount(n);
@@ -87,23 +93,22 @@ function RestorePage() {
     () =>
       words.map((w) => {
         if (!w) return "empty" as const;
+        // The real 2048-word list lives inside `zoka` and is checked on restore;
+        // the mock's tiny list would flag real seed words as invalid.
+        if (desktop) return "valid" as const;
         return WORDLIST.includes(w) ? "valid" as const : "invalid" as const;
       }),
-    [words],
+    [words, desktop],
   );
 
   const allValid = validity.every((v) => v === "valid") && words.length === wordCount;
-
-  // Auto-restore once every word is valid.
-  useEffect(() => {
-    if (!allValid || busy) return;
-    void tryRestore();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allValid]);
+  const passwordValid = password.length >= 8 && password === passwordConfirm;
 
   async function tryRestore() {
+    if (busy || !allValid || !passwordValid) return;
     const phrase = words.join(" ");
     setBusy(true);
+    setError(null);
     try {
       const ok = await engine.validateMnemonic(phrase);
       if (!ok) {
@@ -112,10 +117,14 @@ function RestorePage() {
         });
         return;
       }
-      const wallet = await engine.restoreWallet(phrase);
+      const wallet = await engine.restoreWallet(phrase, password);
       setWords(Array.from({ length: wordCount }, () => ""));
+      setPassword("");
+      setPasswordConfirm("");
       unlockWithWallet(wallet);
       void navigate({ to: "/wallet" });
+    } catch (e) {
+      setError(errToString(e));
     } finally {
       setBusy(false);
     }
@@ -123,9 +132,9 @@ function RestorePage() {
 
   const currentFragment = focused !== null ? words[focused] ?? "" : "";
   const suggestions = useMemo(() => {
-    if (focused === null || !currentFragment || validity[focused] === "valid") return [];
+    if (desktop || focused === null || !currentFragment || validity[focused] === "valid") return [];
     return WORDLIST.filter((w) => w.startsWith(currentFragment)).slice(0, 8);
-  }, [focused, currentFragment, validity]);
+  }, [focused, currentFragment, validity, desktop]);
 
   const validCount = validity.filter((v) => v === "valid").length;
 
@@ -250,16 +259,49 @@ function RestorePage() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center justify-between">
+          <div className="mt-8 border-t border-border pt-6">
+            <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Set a password
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Encrypts the restored keys on this device. You'll use it to unlock and to sign.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password (min 8 chars)"
+              />
+              <Input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                placeholder="Confirm password"
+              />
+            </div>
+            {passwordConfirm.length > 0 && password !== passwordConfirm && (
+              <p className="mono mt-2 text-[11px] uppercase tracking-wider text-destructive">
+                Passwords do not match
+              </p>
+            )}
+            {error && (
+              <p className="mono mt-2 text-[11px] uppercase tracking-wider text-destructive">
+                {error}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-6 flex items-center justify-between">
             <p className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {validCount}/{wordCount} valid
             </p>
             <Button
               className="mono uppercase tracking-wider"
-              disabled={!allValid || busy}
+              disabled={!allValid || !passwordValid || busy}
               onClick={tryRestore}
             >
-              {busy ? "Deriving…" : "Restore wallet"}
+              {busy ? "Restoring…" : "Restore wallet"}
             </Button>
           </div>
         </section>

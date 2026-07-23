@@ -1,0 +1,6 @@
+# Tauri build artifacts
+/target
+/gen/schemas
+
+# Bundled runtime inputs (copied from the parent ZOKA repo at build time)
+/resources/

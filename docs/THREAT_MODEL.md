@@ -17,7 +17,7 @@ password, decrypted transactions.
 | 8 | Seed leaked via screenshot   | Hidden by default. Reveal is one-shot with explicit action.                |
 | 9 | Browser memory disclosure    | Zero out Uint8Array secrets. Lock on inactivity. Best-effort only.         |
 |10 | Stale service worker cache   | No service worker registered.                                              |
-|11 | Sensitive data in logs       | No sensitive values passed to `reportLovableError`.                        |
+|11 | Sensitive data in logs       | No sensitive values passed to `reportAppError`.                            |
 |12 | Analytics leakage            | No analytics, no third-party tracking, no session recording.               |
 |13 | Duplicate transactions       | Per-operation local id; disabled buttons during broadcast.                 |
 |14 | Wrong network broadcast      | Chain-id check before signing; UI shows network on confirmation.           |

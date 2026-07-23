@@ -4,15 +4,14 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 
-import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportAppError } from "../lib/error-reporting";
 import { WalletProvider } from "@/wallet/WalletProvider";
 import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
+import { Toaster } from "@/components/ui/sonner";
+import { CloseConfirmGate } from "@/components/zoka/CloseConfirmGate";
 
 function NotFoundComponent() {
   return (
@@ -40,7 +39,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportAppError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
@@ -75,50 +74,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "A private, non-custodial web wallet for Zoka Network to manage ZKA assets securely." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "A private, non-custodial web wallet for Zoka Network to manage ZKA assets securely." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "A private, non-custodial web wallet for Zoka Network to manage ZKA assets securely." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/795841df-921e-406a-b905-f4812cf3bf91/id-preview-e80baea3--46b7d77d-a295-4e0e-908b-65d16ec3a149.lovable.app-1784379558892.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/795841df-921e-406a-b905-f4812cf3bf91/id-preview-e80baea3--46b7d77d-a295-4e0e-908b-65d16ec3a149.lovable.app-1784379558892.png" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -128,6 +87,8 @@ function RootComponent() {
       <GlobalErrorBoundary>
         <WalletProvider>
           <Outlet />
+          <Toaster />
+          <CloseConfirmGate />
         </WalletProvider>
       </GlobalErrorBoundary>
     </QueryClientProvider>

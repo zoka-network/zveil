@@ -15,12 +15,13 @@ function AboutPage() {
       </header>
 
       <section className="zk-panel p-6 text-sm leading-relaxed text-muted-foreground">
-        <p className="text-foreground">Zoka Web Wallet is a non-custodial browser wallet.</p>
+        <p className="text-foreground">Zveil is a non-custodial desktop wallet for Zoka Network.</p>
         <ul className="mt-4 space-y-2">
           <li>· Your seed phrase is generated on this device and never leaves it.</li>
           <li>· Private scan and spend keys are never sent to any server.</li>
-          <li>· Balance scanning runs locally against a Zoka node you choose.</li>
-          <li>· Transactions are built, proved and signed inside this browser.</li>
+          <li>· Balance scanning runs against a Zoka node on this device.</li>
+          <li>· Transactions are built, proved and signed locally, then broadcast.</li>
+          <li>· Optional Tor hides your IP from the network.</li>
           <li>· No analytics, no session recording, no third-party trackers.</li>
         </ul>
       </section>
@@ -28,9 +29,9 @@ function AboutPage() {
       <section className="zk-panel p-6 text-sm text-muted-foreground">
         <p className="mono text-[10px] uppercase tracking-widest">Status</p>
         <p className="mt-3">
-          This build ships a UI-only preview with a mock cryptographic engine. It is not audited
-          and MUST NOT be used with real funds. Mainnet is disabled until the official Zoka WASM
-          engine is integrated and independently reviewed.
+          Early release. Zveil runs the official Zoka node engine locally to derive keys, scan
+          balances and sign private transactions. Keep your seed phrase backed up offline — it is
+          the only way to recover your funds.
         </p>
       </section>
     </div>

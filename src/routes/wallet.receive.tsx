@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
@@ -11,12 +12,15 @@ export const Route = createFileRoute("/wallet/receive")({
 
 function ReceivePage() {
   const { wallet } = useWallet();
+  const [copied, setCopied] = useState(false);
   if (!wallet) return null;
   const addr = wallet.primaryAddress.value;
 
   async function copy() {
     await navigator.clipboard.writeText(addr);
     toast.success("Address copied");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
   }
 
   return (
@@ -39,8 +43,12 @@ function ReceivePage() {
           <span className="text-foreground">{addr.slice(-6)}</span>
         </div>
         <Button onClick={copy} variant="outline" className="mono mt-6 uppercase tracking-wider">
-          <Copy className="mr-1.5 h-3.5 w-3.5" />
-          Copy address
+          {copied ? (
+            <Check className="mr-1.5 h-3.5 w-3.5 text-success" />
+          ) : (
+            <Copy className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          {copied ? "Copied" : "Copy address"}
         </Button>
       </section>
 

@@ -1,0 +1,30 @@
+[package]
+name = "zveil"
+version = "1.0.0"
+description = "Zveil — private, non-custodial desktop wallet for Zoka Network"
+authors = ["Zoka Network"]
+edition = "2021"
+rust-version = "1.77"
+
+# The desktop binary links against this library. Keeping the app logic in a lib
+# (with main.rs a thin shim) is the Tauri v2 convention and keeps room for a
+# mobile entry point later.
+[lib]
+name = "zveil_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# A wallet ships as a single lean binary: optimize for size and strip symbols.
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

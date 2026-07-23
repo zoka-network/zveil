@@ -7,12 +7,14 @@ import {
   Lock,
   Network,
   Shield,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 import { useEffect } from "react";
 import { DevEngineBanner } from "@/components/zoka/DevEngineBanner";
 import { ZokaLogo } from "@/components/zoka/ZokaLogo";
 import { AutoLockDialog } from "@/components/zoka/AutoLockDialog";
+import { WalletSwitcher } from "@/components/zoka/WalletSwitcher";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
 
@@ -23,12 +25,13 @@ const NAV: readonly NavItem[] = [
   { to: "/wallet/receive", label: "Receive", icon: ArrowDownToLine },
   { to: "/wallet/activity", label: "Activity", icon: Activity },
   { to: "/wallet/network", label: "Network", icon: Network },
+  { to: "/wallet/privacy", label: "Privacy", icon: ShieldCheck },
   { to: "/wallet/security", label: "Security", icon: Shield },
   { to: "/wallet/about", label: "About", icon: Info },
 ];
 
 export function WalletLayout() {
-  const { status, wallet, lock, activeNode } = useWallet();
+  const { status, wallet, lock, nodeState } = useWallet();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -50,9 +53,24 @@ export function WalletLayout() {
           </Link>
           <div className="flex items-center gap-3">
             <div className="mono hidden text-[10px] uppercase tracking-widest text-muted-foreground sm:flex sm:items-center sm:gap-2">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
-              {activeNode.network}
+              <span className="relative flex h-1.5 w-1.5">
+                {!nodeState.ready && (nodeState.attached || nodeState.managed) && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-75" />
+                )}
+                <span
+                  className={
+                    "relative inline-flex h-1.5 w-1.5 rounded-full " +
+                    (nodeState.ready
+                      ? "bg-success"
+                      : nodeState.attached || nodeState.managed
+                        ? "bg-warning"
+                        : "bg-muted-foreground")
+                  }
+                />
+              </span>
+              {nodeState.ready ? "Mainnet" : nodeState.attached || nodeState.managed ? "Syncing" : "Offline"}
             </div>
+            <WalletSwitcher />
             <Button
               variant="ghost"
               size="sm"

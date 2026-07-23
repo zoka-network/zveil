@@ -106,8 +106,19 @@ export interface ZokaWalletEngine {
 
   generateWallet(wordCount?: 12 | 24): Promise<Mnemonic>;
   validateMnemonic(mnemonic: string): Promise<boolean>;
-  restoreWallet(mnemonic: string): Promise<DerivedWallet>;
-  deriveWallet(mnemonic: string): Promise<DerivedWallet>;
+  /**
+   * Persist a wallet derived from `mnemonic`, encrypted with `password`, and
+   * unlock the session. `password` is optional only so the mock (which has no
+   * encryption) can ignore it; the native engine requires it.
+   */
+  restoreWallet(mnemonic: string, password?: string): Promise<DerivedWallet>;
+  deriveWallet(mnemonic: string, password?: string): Promise<DerivedWallet>;
+
+  /**
+   * Verify `password` against an already-stored wallet and establish the
+   * session. Resolves false on an incorrect password.
+   */
+  unlock(address: string, password: string): Promise<boolean>;
 
   scanWallet(params: ScanWalletParams): Promise<ScanWalletResult>;
 

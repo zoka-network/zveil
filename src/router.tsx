@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, createHashHistory } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -7,6 +7,10 @@ export const getRouter = () => {
 
   const router = createRouter({
     routeTree,
+    // Hash routing: the packaged app is loaded from a static file root (the
+    // Tauri webview), where there is no server to resolve deep paths like
+    // /wallet/send — the hash keeps all routing in the client.
+    history: createHashHistory(),
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
@@ -14,3 +18,9 @@ export const getRouter = () => {
 
   return router;
 };
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: ReturnType<typeof getRouter>;
+  }
+}

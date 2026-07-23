@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Zveil",
+  "version": "1.0.0",
+  "identifier": "network.zoka.zveil",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Zveil",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi"],
+    "resources": {
+      "resources/zoka.exe": "zoka.exe",
+      "resources/mainnet-network.v1.json": "mainnet-network.v1.json",
+      "resources/trusted-setup/private_tx.params": "trusted-setup/private_tx.params",
+      "resources/trusted-setup/balance.params": "trusted-setup/balance.params",
+      "resources/trusted-setup/merkle.params": "trusted-setup/merkle.params",
+      "resources/trusted-setup/nullifier.params": "trusted-setup/nullifier.params",
+      "resources/trusted-setup/DIGEST": "trusted-setup/DIGEST",
+      "resources/tor/tor.exe": "tor/tor.exe"
+    },
+    "publisher": "Zoka Network",
+    "copyright": "Zoka Network",
+    "category": "Finance",
+    "shortDescription": "Private, non-custodial wallet for Zoka Network.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
