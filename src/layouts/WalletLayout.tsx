@@ -17,6 +17,7 @@ import { AutoLockDialog } from "@/components/zoka/AutoLockDialog";
 import { WalletSwitcher } from "@/components/zoka/WalletSwitcher";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/wallet/WalletProvider";
+import { useAppVersion } from "@/wallet/useAppVersion";
 
 type NavItem = { to: string; label: string; icon: typeof Wallet; exact?: boolean };
 const NAV: readonly NavItem[] = [
@@ -34,6 +35,7 @@ export function WalletLayout() {
   const { status, wallet, lock, nodeState } = useWallet();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const version = useAppVersion();
 
   useEffect(() => {
     if (status === "empty") {
@@ -48,9 +50,14 @@ export function WalletLayout() {
       <DevEngineBanner />
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/wallet" className="text-foreground">
-            <ZokaLogo />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/wallet" className="text-foreground">
+              <ZokaLogo />
+            </Link>
+            {version.data && (
+              <span className="mono text-[10px] text-muted-foreground">v{version.data}</span>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <div className="mono hidden text-[10px] uppercase tracking-widest text-muted-foreground sm:flex sm:items-center sm:gap-2">
               <span className="relative flex h-1.5 w-1.5">

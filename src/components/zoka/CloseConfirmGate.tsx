@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,34 +11,28 @@ import {
 import { isDesktop } from "@/wallet/runtime";
 
 /**
- * Intercepts the window's close request (the titlebar X) and asks for
- * confirmation before actually exiting. Desktop-only: in the browser preview
- * there is no native window to intercept.
+ * Shows a confirmation dialog before the app actually closes. The
+ * interception itself lives in Rust (`on_window_event` in lib.rs) — this
+ * component just listens for the "close-requested" event it emits and, on
+ * confirm, calls the `force_close` command. Rust owns the interception
+ * permanently for the app's whole lifetime; there's no per-mount JS listener
+ * to keep alive here, which is what made an earlier, JS-only version of this
+ * silently stop working after the first close attempt.
  */
 export function CloseConfirmGate() {
   const [open, setOpen] = useState(false);
-  const confirmedRef = useRef(false);
-  const windowRef = useRef<import("@tauri-apps/api/window").Window | null>(null);
 
   useEffect(() => {
     if (!isDesktop()) return;
     let unlisten: (() => void) | undefined;
     let cancelled = false;
 
-    void import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+    void import("@tauri-apps/api/event").then(({ listen }) => {
       if (cancelled) return;
-      const win = getCurrentWindow();
-      windowRef.current = win;
-      void win
-        .onCloseRequested((event) => {
-          if (confirmedRef.current) return;
-          event.preventDefault();
-          setOpen(true);
-        })
-        .then((fn) => {
-          if (cancelled) fn();
-          else unlisten = fn;
-        });
+      void listen("close-requested", () => setOpen(true)).then((fn) => {
+        if (cancelled) fn();
+        else unlisten = fn;
+      });
     });
 
     return () => {
@@ -45,11 +40,6 @@ export function CloseConfirmGate() {
       unlisten?.();
     };
   }, []);
-
-  async function confirmClose() {
-    confirmedRef.current = true;
-    await windowRef.current?.close();
-  }
 
   if (!isDesktop()) return null;
 
@@ -69,7 +59,7 @@ export function CloseConfirmGate() {
           </Button>
           <Button
             variant="destructive"
-            onClick={() => void confirmClose()}
+            onClick={() => void invoke("force_close")}
             className="mono uppercase tracking-wider"
           >
             Close Zveil

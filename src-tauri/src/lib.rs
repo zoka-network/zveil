@@ -11,6 +11,8 @@ mod node;
 mod tor;
 mod zoka;
 
+use tauri::Emitter;
+
 use node::NodeManager;
 use tor::TorManager;
 
@@ -21,13 +23,24 @@ fn shell_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Forces the window closed once the frontend's confirmation dialog has been
+/// accepted. `destroy()` bypasses `CloseRequested` — calling `.close()`
+/// instead would just re-trigger the interception below and reopen the same
+/// dialog forever.
+#[tauri::command]
+fn force_close(window: tauri::Window) {
+    let _ = window.destroy();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .manage(NodeManager::default())
         .manage(TorManager::default())
         .invoke_handler(tauri::generate_handler![
             shell_version,
+            force_close,
             commands::node_status,
             commands::chain_height,
             commands::generate_seed,
@@ -46,8 +59,19 @@ pub fn run() {
             tor::stop_tor,
             tor::tor_state,
         ])
+        // Intercepted once, permanently, at the Rust level rather than from a
+        // JS-side listener the frontend would have to keep registered — that
+        // approach turned out fragile (a missed re-registration silently
+        // stopped intercepting the close button, with no visible error, and
+        // once the window was gone there was nothing left to reattach it to).
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.emit("close-requested", ());
+            }
+        })
         .build(tauri::generate_context!())
-        .expect("error while building the Zoka Wallet application")
+        .expect("error while running the Zoka Wallet application")
         .run(|app_handle, event| {
             // Tear down any node/Tor processes we started when the app exits, so
             // nothing is left holding the database or a socket.

@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Core capabilities for the main wallet window.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:event:default", "shell:allow-open"]
 }
