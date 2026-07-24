@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "resources": {
+      "resources/zoka.exe": null,
+      "resources/tor/tor.exe": null,
+      "resources/zoka": "zoka"
+    }
+  }
+}

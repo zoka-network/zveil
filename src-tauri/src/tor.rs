@@ -1,10 +1,16 @@
 // Tor supervisor.
 //
-// Runs the bundled `tor.exe` with a SOCKS proxy the node routes its peer
-// traffic through. Outbound-only (SOCKS) is enough for a wallet: we do not need
-// to be a reachable inbound peer, so no hidden service is configured. The node
-// is launched with `--tor-proxy 127.0.0.1:19050` (and `--tor-only` for strict
+// Runs Tor with a SOCKS proxy the node routes its peer traffic through.
+// Outbound-only (SOCKS) is enough for a wallet: we do not need to be a
+// reachable inbound peer, so no hidden service is configured. The node is
+// launched with `--tor-proxy 127.0.0.1:19050` (and `--tor-only` for strict
 // privacy); see node.rs.
+//
+// On Windows we bundle a checksum-pinned `tor.exe` (see the parent repo's
+// managed-Tor docs), same as ZSilent. On Linux we deliberately don't: `tor`
+// is a well-maintained distro package almost everywhere, and depending on it
+// means its security updates land through the user's normal package manager
+// instead of waiting on us to re-verify and re-bundle a new Expert Bundle.
 
 use std::fs;
 use std::io::Write;
@@ -57,6 +63,17 @@ fn socks_ready() -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
 }
 
+/// Search `$PATH` for `name`, the same resolution a shell would do. Used on
+/// Linux, where we deliberately don't bundle our own `tor` (see module docs
+/// on why Windows does) and instead rely on the distro's package, which gets
+/// its own security updates independent of our release cadence.
+fn find_in_path(name: &str) -> Option<PathBuf> {
+    let path_var = std::env::var_os("PATH")?;
+    std::env::split_paths(&path_var)
+        .map(|dir| dir.join(name))
+        .find(|candidate| candidate.is_file())
+}
+
 fn tor_binary(app: &AppHandle) -> Result<PathBuf, String> {
     let name = if cfg!(windows) { "tor.exe" } else { "tor" };
     let mut candidates: Vec<PathBuf> = Vec::new();
@@ -72,10 +89,18 @@ fn tor_binary(app: &AppHandle) -> Result<PathBuf, String> {
             candidates.push(repo.join("third_party/tor/windows-x86_64").join(name));
         }
     }
-    candidates
-        .into_iter()
-        .find(|p| p.exists())
-        .ok_or_else(|| "tor binary not found (bundled resource missing)".to_string())
+    if let Some(found) = candidates.into_iter().find(|p| p.exists()) {
+        return Ok(found);
+    }
+    // Linux/macOS: no bundled binary shipped, so fall back to a system
+    // install (e.g. `apt install tor`). Not offered on Windows, where there
+    // is no equivalent package manager convention to rely on.
+    if !cfg!(windows) {
+        if let Some(system) = find_in_path(name) {
+            return Ok(system);
+        }
+    }
+    Err("tor binary not found (bundled resource missing, and no system tor on PATH)".to_string())
 }
 
 fn tor_dir(app: &AppHandle) -> Result<PathBuf, String> {

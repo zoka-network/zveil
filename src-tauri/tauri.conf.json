@@ -27,7 +27,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["msi"],
+    "targets": ["msi", "deb"],
     "resources": {
       "resources/zoka.exe": "zoka.exe",
       "resources/mainnet-network.v1.json": "mainnet-network.v1.json",

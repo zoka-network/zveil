@@ -1,0 +1,207 @@
+name: Release
+
+# Manual only. Verification builds are the default; publication requires the
+# explicit publish_release gate after the generated artifacts are reviewed.
+on:
+  workflow_dispatch:
+    inputs:
+      node_version:
+        description: "ZokaNetwork/ZokaNetwork tag whose verified zoka binary is embedded"
+        required: true
+        default: "v1.9.1"
+        type: string
+      release_tag:
+        description: "Zveil tag to publish under"
+        required: true
+        default: "v1.0.0"
+        type: string
+      zoka_sha256:
+        description: "Required SHA-256 of the official Windows zoka.exe asset"
+        required: true
+        type: string
+      publish_release:
+        description: "Publish verified artifacts to release_tag (normally leave off)"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  # Same pinned Tor Expert Bundle ZSilent embeds on Windows, so both desktop
+  # apps ship the identical verified tor.exe.
+  TOR_BUNDLE_URL: "https://archive.torproject.org/tor-package-archive/torbrowser/15.0.18/tor-expert-bundle-windows-x86_64-15.0.18.tar.gz"
+  TOR_BUNDLE_SHA256: "6ac067402c7b4a3dc37887ed3754b3914b67fdc220c966190683e9ccf91abf0f"
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_glob: zoka-guard-vault/src-tauri/target/release/bundle/msi/*.msi
+            artifact_name: Zveil-windows-msi
+          - os: ubuntu-latest
+            artifact_glob: zoka-guard-vault/src-tauri/target/release/bundle/deb/*.deb
+            artifact_name: Zveil-linux-deb
+
+    steps:
+      - name: Checkout zoka-guard-vault
+        uses: actions/checkout@v4
+        with:
+          path: zoka-guard-vault
+
+      - name: Checkout zoka-network release tag
+        uses: actions/checkout@v4
+        with:
+          repository: ZokaNetwork/ZokaNetwork
+          ref: ${{ inputs.node_version }}
+          path: zoka-network
+
+      # Windows never compiles the node: it downloads and verifies the same
+      # release asset ZSilent embeds, so both apps ship byte-identical zoka
+      # binaries for a given node_version.
+      - name: Fetch and verify official Windows zoka.exe
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NODE_VERSION: ${{ inputs.node_version }}
+          ZOKA_SHA256: ${{ inputs.zoka_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$ZOKA_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]
+          mkdir -p zoka-network/target/release
+          cd zoka-network/target/release
+          gh release download "$NODE_VERSION" --repo ZokaNetwork/ZokaNetwork \
+            --pattern 'zoka.exe' --clobber
+          echo "$ZOKA_SHA256  zoka.exe" | sha256sum -c -
+          test "$(./zoka.exe --version)" = "zoka ${NODE_VERSION#v}"
+
+      - name: Fetch and verify pinned Tor bundle
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L -sS --max-time 120 -o tor-bundle.tar.gz "$TOR_BUNDLE_URL"
+          echo "$TOR_BUNDLE_SHA256  tor-bundle.tar.gz" | sha256sum -c -
+          mkdir -p tor-extract
+          tar -xzf tor-bundle.tar.gz -C tor-extract
+          mkdir -p zoka-guard-vault/src-tauri/resources/tor
+          cp tor-extract/tor/tor.exe zoka-guard-vault/src-tauri/resources/tor/tor.exe
+
+      # Linux has no pre-published zoka binary, so build it straight from the
+      # tagged node source instead of trying to fetch a release asset.
+      - name: Install Rust toolchain
+        if: runner.os == 'Linux'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo (node)
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            zoka-network/target
+          key: cargo-node-${{ matrix.os }}-${{ hashFiles('zoka-network/Cargo.lock') }}
+          restore-keys: |
+            cargo-node-${{ matrix.os }}-
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake build-essential pkg-config \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libssl-dev patchelf
+
+      - name: Build zoka from the release tag
+        if: runner.os == 'Linux'
+        working-directory: zoka-network
+        run: cargo build --release --features randomx --bin zoka
+
+      - name: Verify built zoka version
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          NODE_VERSION: ${{ inputs.node_version }}
+        run: |
+          set -euo pipefail
+          test "$(./zoka-network/target/release/zoka --version)" = "zoka ${NODE_VERSION#v}"
+
+      - name: Stage shared resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest=zoka-guard-vault/src-tauri/resources
+          mkdir -p "$dest/trusted-setup"
+          cp zoka-network/docs/mainnet-network.v1.json "$dest/mainnet-network.v1.json"
+          cp zoka-network/trusted-setup/private_tx.params "$dest/trusted-setup/"
+          cp zoka-network/trusted-setup/balance.params "$dest/trusted-setup/"
+          cp zoka-network/trusted-setup/merkle.params "$dest/trusted-setup/"
+          cp zoka-network/trusted-setup/nullifier.params "$dest/trusted-setup/"
+          cp zoka-network/trusted-setup/DIGEST "$dest/trusted-setup/DIGEST"
+
+      - name: Stage Windows zoka.exe resource
+        if: runner.os == 'Windows'
+        shell: bash
+        run: cp zoka-network/target/release/zoka.exe zoka-guard-vault/src-tauri/resources/zoka.exe
+
+      - name: Stage Linux zoka resource
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cp zoka-network/target/release/zoka zoka-guard-vault/src-tauri/resources/zoka
+          chmod +x zoka-guard-vault/src-tauri/resources/zoka
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: zoka-guard-vault
+        run: npm ci
+
+      - name: Build Tauri bundle
+        working-directory: zoka-guard-vault
+        run: npx tauri build
+
+      - name: Upload verification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: ${{ inputs.publish_release }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all verified artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifact tree
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.msi" -o -name "*.deb" \) -exec cp {} release/ \;
+          ls -lh release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          tag_name: ${{ inputs.release_tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
