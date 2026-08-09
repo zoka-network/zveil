@@ -1,6 +1,6 @@
 [package]
 name = "zveil"
-version = "1.0.0"
+version = "1.0.1"
 description = "Zveil — private, non-custodial desktop wallet for Zoka Network"
 authors = ["Zoka Network"]
 edition = "2021"

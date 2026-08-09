@@ -1,0 +1,66 @@
+# Compila el .deb de Zveil en Linux.
+#
+# Tauri solo puede empaquetar .deb corriendo sobre Linux -- necesita las
+# herramientas de Debian --, asi que en Windows salen unicamente .msi y .exe.
+# Este trabajo cubre esa mitad, igual que lo hacia la accion equivalente en
+# GitHub.
+#
+# Se dispara a mano, no en cada push: compilar el nodo y la aplicacion cuesta
+# varios minutos de runner y solo hace falta al publicar una version.
+#
+# Nota sobre el uso de CI: esto compila un instalador y termina. No corre un
+# nodo de blockchain ni ningun proceso persistente.
+
+stages:
+  - build
+
+build-deb:
+  stage: build
+  image: ubuntu:22.04
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_TAG
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    # La version del nodo que se empaqueta dentro de Zveil. Debe existir como
+    # etiqueta en el repositorio del nodo.
+    ZOKA_TAG: v2.0.2
+  cache:
+    key: zveil-deb-$CI_COMMIT_REF_SLUG
+    paths:
+      - .cargo/
+      - src-tauri/target/
+      - zoka-network/target/
+  before_script:
+    - apt-get update -qq
+    # Las mismas dependencias que pedia el runner de Ubuntu en GitHub: webkit
+    # para la ventana de Tauri, appindicator para la bandeja, patchelf para
+    # ajustar las rutas de las bibliotecas dentro del paquete.
+    - apt-get install -y -qq curl git build-essential clang cmake pkg-config
+      libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      libssl-dev patchelf
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y -qq nodejs
+    - curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal
+    - . "$HOME/.cargo/env"
+  script:
+    # El nodo se compila desde su propia etiqueta, no desde un binario subido:
+    # asi el .deb no puede terminar llevando una version distinta de la que
+    # dice. Ese error ya ocurrio una vez con un MSI que embebia un zoka viejo.
+    - git clone --depth 1 --branch "$ZOKA_TAG"
+      "https://gitlab.com/zokanetwork/zokanetwork.git" zoka-network
+    - cd zoka-network && cargo build --release --features randomx --bin zoka && cd ..
+    - ./zoka-network/target/release/zoka --version
+    - mkdir -p src-tauri/resources
+    - cp zoka-network/target/release/zoka src-tauri/resources/zoka
+    - chmod +x src-tauri/resources/zoka
+    - cp zoka-network/docs/mainnet-network.v1.json src-tauri/resources/mainnet-network.v1.json
+    - npm ci
+    - npm run tauri build -- --bundles deb
+    - sha256sum src-tauri/target/release/bundle/deb/*.deb
+  artifacts:
+    name: "zveil-deb-$CI_COMMIT_REF_SLUG"
+    paths:
+      - src-tauri/target/release/bundle/deb/*.deb
+    expire_in: 30 days
+  timeout: 90m
