@@ -10,7 +10,7 @@ export const Route = createFileRoute("/wallet/about")({
 
 const LINKS = [
   { label: "zoka.network", href: "https://zoka.network", Icon: Globe },
-  { label: "GitHub", href: "https://github.com/ZokaNetwork", Icon: Github },
+  { label: "GitHub", href: "https://github.com/zoka-network", Icon: Github },
   { label: "X / Twitter", href: "https://x.com/zokanetwork", Icon: Twitter },
   { label: "Discord", href: "https://discord.com/invite/rg55f7drKc", Icon: MessageCircle },
 ];

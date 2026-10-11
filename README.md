@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ZokaNetwork/zveil/releases/latest">Download</a> ·
+  <a href="https://github.com/zoka-network/zveil/releases/latest">Download</a> ·
   <a href="https://discord.com/invite/rg55f7drKc">Discord</a> ·
   <a href="https://x.com/zokanetwork">X / Twitter</a>
 </p>
@@ -18,7 +18,7 @@
 
 Zveil is a lightweight desktop wallet for Zoka's zero-knowledge private
 transactions. It's a thin, native shell around the same `zoka` engine that
-powers the full node ([ZSilent Core](https://github.com/ZokaNetwork/zsilent-core))
+powers the full node ([ZSilent Core](https://github.com/zoka-network/zsilent-core))
 — no reimplementation of wallet logic, no keys ever handled outside that
 engine.
 
@@ -43,7 +43,7 @@ talk to the same local `zoka` node when one is present.
 ## Install
 
 Prebuilt installers are on the
-[Releases page](https://github.com/ZokaNetwork/zveil/releases/latest):
+[Releases page](https://github.com/zoka-network/zveil/releases/latest):
 
 | Platform | Package |
 | -------- | ------- |
@@ -61,7 +61,7 @@ with the release before installing.
   native `zoka` CLI binary, which does all scanning, proving and signing.
   The webview only ever sees public addresses and already-signed output.
 - **Node:** bundles the same `zoka` binary as ZSilent Core, built from the
-  [ZokaNetwork/ZokaNetwork](https://github.com/ZokaNetwork/ZokaNetwork)
+  [zoka-network/zokanetwork](https://github.com/zoka-network/zokanetwork)
   source for the matching release tag.
 
 ## Development

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       node_version:
-        description: "ZokaNetwork/ZokaNetwork tag whose verified zoka binary is embedded"
+        description: "zoka-network/zokanetwork tag whose verified zoka binary is embedded"
         required: true
         default: "v1.9.1"
         type: string
@@ -58,7 +58,7 @@ jobs:
       - name: Checkout zoka-network release tag
         uses: actions/checkout@v4
         with:
-          repository: ZokaNetwork/ZokaNetwork
+          repository: zoka-network/zokanetwork
           ref: ${{ inputs.node_version }}
           path: zoka-network
 
@@ -77,7 +77,7 @@ jobs:
           [[ "$ZOKA_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]
           mkdir -p zoka-network/target/release
           cd zoka-network/target/release
-          gh release download "$NODE_VERSION" --repo ZokaNetwork/ZokaNetwork \
+          gh release download "$NODE_VERSION" --repo zoka-network/zokanetwork \
             --pattern 'zoka.exe' --clobber
           echo "$ZOKA_SHA256  zoka.exe" | sha256sum -c -
           test "$(./zoka.exe --version)" = "zoka ${NODE_VERSION#v}"
